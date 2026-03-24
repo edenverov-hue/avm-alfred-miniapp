@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AVM Engineering — Alfred</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root {
+      --bg: #0f0f0f;
+      --surface: #1a1a1a;
+      --border: #2a2a2a;
+      --accent: #e8a000;
+      --text: #f0f0f0;
+      --text-muted: #888;
+      --red: #e53935;
+      --yellow: #ffa000;
+      --green: #43a047;
+      --radius: 12px;
+      --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+    body {
+      margin: 0; padding: 0;
+      background: var(--tg-theme-bg-color, var(--bg));
+      color: var(--tg-theme-text-color, var(--text));
+      font-family: var(--font);
+      min-height: 100vh;
+    }
+    .header {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--surface);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .logo { font-size: 20px; font-weight: 700; color: var(--accent); letter-spacing: -0.5px; }
+    .badge { font-size: 11px; padding: 2px 8px; border-radius: 20px; background: var(--accent); color: #000; font-weight: 600; }
+    .nav { display: flex; overflow-x: auto; padding: 8px 16px; gap: 8px; border-bottom: 1px solid var(--border); scrollbar-width: none; }
+    .nav-btn { flex-shrink: 0; padding: 8px 16px; border-radius: 20px; border: 1px solid var(--border); background: transparent; color: var(--text-muted); font-size: 13px; cursor: pointer; transition: all 0.2s; }
+    .nav-btn.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 600; }
+    .content { padding: 16px; max-width: 600px; margin: 0 auto; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; }
+    .card-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 12px; }
+    .task-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+    .task-item:last-child { border-bottom: none; }
+    .priority-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; flex-shrink: 0; }
+    .priority-H { background: var(--red); }
+    .priority-M { background: var(--yellow); }
+    .priority-L { background: var(--green); }
+    .task-title { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
+    .task-meta { font-size: 12px; color: var(--text-muted); }
+    .org-node { display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; }
+    .org-node.active { border-color: var(--green); }
+    .org-node.inactive { opacity: 0.5; }
+    .role-badge { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: var(--border); color: var(--accent); letter-spacing: 0.5px; }
+    .person-name { font-size: 14px; font-weight: 500; }
+    .person-meta { font-size: 11px; color: var(--text-muted); }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; margin-left: auto; }
+    .status-active { background: var(--green); }
+    .status-pending { background: var(--yellow); }
+    .status-empty { background: var(--border); }
+    .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .stat-box { background: var(--border); border-radius: 8px; padding: 12px; text-align: center; }
+    .stat-num { font-size: 28px; font-weight: 700; color: var(--accent); }
+    .stat-label { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+    .doc-item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .doc-icon { font-size: 20px; flex-shrink: 0; }
+    .doc-name { font-size: 13px; font-weight: 500; }
+    .doc-meta { font-size: 11px; color: var(--text-muted); }
+    .loading { text-align: center; padding: 40px; color: var(--text-muted); }
+    .error-msg { background: #2a1515; border: 1px solid var(--red); border-radius: 8px; padding: 16px; color: var(--red); font-size: 13px; }
+    .section-title { font-size: 16px; font-weight: 600; margin-bottom: 12px; margin-top: 4px; }
+    .raci-table { width: 100%; border-collapse: collapse; font-size: 12px; overflow-x: auto; display: block; }
+    .raci-table th { padding: 6px 8px; background: var(--border); text-align: left; font-weight: 600; color: var(--text-muted); }
+    .raci-table td { padding: 6px 8px; border-bottom: 1px solid var(--border); }
+    .raci-a { color: var(--red); font-weight: 700; }
+    .raci-r { color: var(--accent); font-weight: 600; }
+    .raci-c { color: var(--green); }
+    .raci-i { color: var(--text-muted); }
+  </style>
+</head>
+<body>
+<div class="header">
+  <div class="logo">AVM</div>
+  <div id="user-badge" class="badge">...</div>
+  <div style="margin-left:auto;font-size:12px;color:var(--text-muted)" id="sync-time"></div>
+</div>
+<nav class="nav" id="nav-tabs"></nav>
+<div class="content" id="content">
+  <div class="loading">&#9203; Ladowanie...</div>
+</div>
+
+<script>
+// Alfred aktualizuje ten URL automatycznie po kazdym uruchomieniu ngrok
+const API_BASE = window.ALFRED_API_URL || "PLACEHOLDER_NGROK_URL";
+const CEO_CHAT_ID = "950876530";
+
+const tg = window.Telegram?.WebApp;
+if (tg) { tg.ready(); tg.expand(); }
+
+const user = tg?.initDataUnsafe?.user;
+const chat_id = user?.id?.toString() || "unknown";
+const is_ceo = chat_id === CEO_CHAT_ID;
+
+document.getElementById("user-badge").textContent = is_ceo ? "CEO" : "Pracownik";
+
+async function api(endpoint) {
+  try {
+    const r = await fetch(API_BASE + endpoint, { headers: {"X-Chat-Id": chat_id} });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    return await r.json();
+  } catch(e) {
+    console.error("API error:", e);
+    return null;
+  }
+}
+
+const CEO_TABS = [
+  {id:"dashboard",label:"Pulpit"},
+  {id:"tasks",    label:"Zadania"},
+  {id:"org",      label:"Org Chart"},
+  {id:"workers",  label:"Zespol"},
+  {id:"docs",     label:"Dokumenty"},
+  {id:"raci",     label:"RACI"},
+];
+const WORKER_TABS = [
+  {id:"my_tasks",  label:"Moje zadania"},
+  {id:"my_profile",label:"Profil"},
+  {id:"my_docs",   label:"Dokumenty"},
+  {id:"help",      label:"Pomoc"},
+];
+
+function buildNav() {
+  const tabs = is_ceo ? CEO_TABS : WORKER_TABS;
+  const nav = document.getElementById("nav-tabs");
+  nav.innerHTML = tabs.map(t =>
+    `<button class="nav-btn" onclick="switchTab('${t.id}')">${t.label}</button>`
+  ).join("");
+  switchTab(tabs[0].id);
+}
+
+function switchTab(id) {
+  const tabs = is_ceo ? CEO_TABS : WORKER_TABS;
+  document.querySelectorAll(".nav-btn").forEach((b, i) => {
+    b.classList.toggle("active", tabs[i]?.id === id);
+  });
+  loadTab(id);
+}
+
+async function loadTab(id) {
+  const c = document.getElementById("content");
+  c.innerHTML = '<div class="loading">&#9203; Ladowanie...</div>';
+  switch(id) {
+    case "dashboard":   await renderDashboard(); break;
+    case "tasks":       await renderTasks(); break;
+    case "org":         await renderOrg(); break;
+    case "workers":     await renderWorkers(); break;
+    case "docs":        await renderDocs(null); break;
+    case "raci":        await renderRaci(); break;
+    case "my_tasks":    await renderMyTasks(); break;
+    case "my_profile":  await renderMyProfile(); break;
+    case "my_docs":     await renderMyDocs(); break;
+    case "help":        renderHelp(); break;
+  }
+  document.getElementById("sync-time").textContent =
+    new Date().toLocaleTimeString("pl",{hour:"2-digit",minute:"2-digit"});
+}
+
+async function renderDashboard() {
+  const data = await api("/api/dashboard");
+  if (!data) return showError();
+  const s = data.stats;
+  document.getElementById("content").innerHTML = `
+    <p class="section-title">Stan systemu AVM</p>
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="stat-num">${s.open}</div>
+        <div class="stat-label">Otwarte</div>
+      </div>
+      <div class="stat-box" style="border-color:${s.critical>0?'var(--red)':'var(--border)'}">
+        <div class="stat-num" style="color:${s.critical>0?'var(--red)':'var(--accent)'}">${s.critical}</div>
+        <div class="stat-label">Krytyczne</div>
+      </div>
+      <div class="stat-box" style="border-color:${s.overdue>0?'var(--red)':'var(--border)'}">
+        <div class="stat-num" style="color:${s.overdue>0?'var(--red)':'var(--accent)'}">${s.overdue}</div>
+        <div class="stat-label">Przeterminowane</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" style="color:var(--yellow)">${s.pending_verification}</div>
+        <div class="stat-label">Do weryfikacji</div>
+      </div>
+    </div>
+    ${data.tasks.filter(t=>t.priority==="H"&&t.status!=="done").length>0?`
+    <div class="card" style="border-color:var(--red);margin-top:16px">
+      <div class="card-title">Wymaga uwagi teraz</div>
+      ${data.tasks.filter(t=>t.priority==="H").map(t=>taskRow(t)).join("")}
+    </div>`:""}
+  `;
+}
+
+async function renderTasks() {
+  const data = await api("/api/dashboard");
+  if (!data) return showError();
+  document.getElementById("content").innerHTML = `
+    <p class="section-title">Zadania (${data.tasks.length})</p>
+    <div class="card">
+      ${data.tasks.map(t=>taskRow(t)).join("")||'<div style="color:var(--text-muted);font-size:13px">Brak zadan</div>'}
+    </div>`;
+}
+
+function taskRow(t) {
+  const statusColor = t.status==="open"?"var(--text-muted)":t.status==="in_progress"?"var(--yellow)":t.status==="pending_verification"?"var(--accent)":"var(--green)";
+  return `<div class="task-item">
+    <div class="priority-dot priority-${t.priority||'M'}"></div>
+    <div>
+      <div class="task-title">${t.title}</div>
+      <div class="task-meta">${t.owner_role||''} ${t.owner_person?'&mdash; '+t.owner_person:''} &nbsp;&middot;&nbsp; ${t.deadline} &nbsp;&middot;&nbsp;
+        <span style="color:${statusColor}">${t.status}</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+async function renderOrg() {
+  const data = await api("/api/org");
+  if (!data) return showError();
+  const hier = data.hierarchy;
+  const roles = data.roles;
+
+  function renderRole(role, depth) {
+    const r = roles[role]||{};
+    const isActive = r.active;
+    const children = hier[role]||[];
+    return `<div style="margin-left:${depth*16}px;margin-bottom:4px">
+      <div class="org-node ${isActive?'active':'inactive'}">
+        <span class="role-badge">${role}</span>
+        <div>
+          <div class="person-name">${r.person||'&mdash;'}</div>
+          <div class="person-meta">${isActive?'aktywny':r.person?'pending':'nieobsadzony'}</div>
+        </div>
+        <div class="status-dot ${isActive?'status-active':r.person?'status-pending':'status-empty'}" style="margin-left:auto"></div>
+      </div>
+      ${children.map(c=>renderRole(c,0)).join("")}
+    </div>`;
+  }
+
+  document.getElementById("content").innerHTML = `
+    <p class="section-title">Struktura organizacji</p>
+    ${renderRole("CEO",0)}`;
+}
+
+async function renderWorkers() {
+  const data = await api("/api/org");
+  if (!data) return showError();
+  const items = Object.entries(data.roles)
+    .filter(([,r])=>r.person)
+    .map(([role,r])=>`
+      <div class="org-node ${r.active?'active':'inactive'}">
+        <div>
+          <div class="person-name">${r.person}</div>
+          <div class="person-meta">${role}${r.type==='temp'?' (zastepstwo)':''}</div>
+        </div>
+        <div class="status-dot ${r.active?'status-active':'status-pending'}" style="margin-left:auto"></div>
+      </div>`).join("");
+
+  document.getElementById("content").innerHTML = `
+    <p class="section-title">Zespol</p>
+    ${items||'<div style="color:var(--text-muted)">Brak zarejestrowanych pracownikow</div>'}`;
+}
+
+async function renderDocs(role) {
+  const endpoint = role ? `/api/documents/${role}` : "/api/documents/ALL";
+  const data = await api(endpoint);
+  if (!data) return showError();
+  const iconMap = {sop:"&#128203;",instrukcja:"&#128214;",jd:"&#128100;",system:"&#127959;",formularz:"&#128221;"};
+  document.getElementById("content").innerHTML = `
+    <p class="section-title">Dokumenty AVM</p>
+    <div class="card">
+      ${data.documents.map(d=>`
+        <div class="doc-item">
+          <div class="doc-icon">${iconMap[d.type]||"&#128196;"}</div>
+          <div>
+            <div class="doc-name">${d.name}</div>
+            <div class="doc-meta">${d.type.toUpperCase()} &middot; ${d.version} &middot; ${d.id}</div>
+          </div>
+        </div>`).join("")||'<div style="color:var(--text-muted)">Brak dokumentow</div>'}
+    </div>`;
+}
+
+async function renderRaci() {
+  const data = await api("/api/raci");
+  if (!data) return showError();
+  const roleKeys = data.roles||[];
+  document.getElementById("content").innerHTML = `
+    <p class="section-title">RACI &mdash; Odpowiedzialnosci</p>
+    <div style="overflow-x:auto">
+      <table class="raci-table">
+        <thead><tr><th>SOP</th>${roleKeys.map(r=>`<th>${r}</th>`).join("")}</tr></thead>
+        <tbody>
+          ${data.matrix.map(row=>`<tr>
+            <td><strong>${row.sop}</strong></td>
+            ${roleKeys.map(r=>{
+              const v=row[r]||"";
+              const cls=v==="A"?"raci-a":v==="R"?"raci-r":v==="C"?"raci-c":v==="I"?"raci-i":"";
+              return `<td class="${cls}">${v}</td>`;
+            }).join("")}
+          </tr>`).join("")}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+async function renderMyTasks() {
+  const data = await api(`/api/worker/${chat_id}`);
+  if (!data) return showError();
+  document.getElementById("content").innerHTML = `
+    <p class="section-title">Moje zadania (${data.tasks.length})</p>
+    <div class="card">
+      ${data.tasks.map(t=>taskRow(t)).join("")||'<div style="color:var(--text-muted);font-size:13px">Brak aktywnych zadan</div>'}
+    </div>`;
+}
+
+async function renderMyProfile() {
+  const data = await api(`/api/worker/${chat_id}`);
+  if (!data) return showError();
+  document.getElementById("content").innerHTML = `
+    <p class="section-title">Moj profil</p>
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+        <div style="width:48px;height:48px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#000">
+          ${data.person?.[0]||"?"}
+        </div>
+        <div>
+          <div style="font-size:18px;font-weight:600">${data.person}</div>
+          <div style="font-size:12px;color:var(--text-muted)">${data.roles.join(" + ")}</div>
+        </div>
+      </div>
+      <div class="card-title">KPI</div>
+      ${data.kpi.map(k=>`<div style="padding:6px 0;font-size:13px;border-bottom:1px solid var(--border)">${k}</div>`).join("")||'<div style="color:var(--text-muted);font-size:13px">Brak KPI</div>'}
+    </div>`;
+}
+
+async function renderMyDocs() {
+  const data = await api(`/api/worker/${chat_id}`);
+  if (!data) return showError();
+  const docsData = await api(`/api/documents/${data.primary_role}`);
+  if (!docsData) return showError();
+  const iconMap = {sop:"&#128203;",instrukcja:"&#128214;",jd:"&#128100;",system:"&#127959;",formularz:"&#128221;"};
+  document.getElementById("content").innerHTML = `
+    <p class="section-title">Moje dokumenty</p>
+    <div class="card">
+      ${docsData.documents.map(d=>`
+        <div class="doc-item">
+          <div class="doc-icon">${iconMap[d.type]||"&#128196;"}</div>
+          <div>
+            <div class="doc-name">${d.name}</div>
+            <div class="doc-meta">${d.type.toUpperCase()} &middot; ${d.version}</div>
+          </div>
+        </div>`).join("")||'<div style="color:var(--text-muted)">Brak dokumentow</div>'}
+    </div>`;
+}
+
+function renderHelp() {
+  document.getElementById("content").innerHTML = `
+    <p class="section-title">Komendy systemu AVM</p>
+    <div class="card">
+      ${[
+        ["PRZYJĄŁEM","Potwierdzam przydzielone zadanie"],
+        ["ZROBIONE","Zgłaszam wykonanie (wymagany dowod)"],
+        ["PROBLEM: opis","Zglaszam blokade — eskalacja do PM"],
+        ["PYTANIE: tresc","Pytanie — odpowiem wg standardow AVM"],
+        ["PROPOZYCJA: tresc","Propozycja ulepszenia systemu"],
+        ["SPOTKANIE: notatka","Zapisz notatke ze spotkania"],
+        ["PROFIL","Twoj profil i aktywne zadania"],
+      ].map(([cmd,desc])=>`
+        <div style="padding:10px 0;border-bottom:1px solid var(--border)">
+          <div style="font-size:13px;font-weight:600;margin-bottom:2px">${cmd}</div>
+          <div style="font-size:12px;color:var(--text-muted)">${desc}</div>
+        </div>`).join("")}
+    </div>
+    <div class="card" style="margin-top:8px">
+      <div class="card-title">3 zasady AVM</div>
+      <div style="font-size:13px;line-height:1.8">
+        1. <strong>Wszystko pisemnie</strong> — ustne ustalenia nie istnieja<br>
+        2. <strong>Dowod przy zamknieciu</strong> — ZROBIONE bez dowodu = niezakonczone<br>
+        3. <strong>Problem zglaszaj od razu</strong> — nie czekaj na deadline
+      </div>
+    </div>`;
+}
+
+function showError() {
+  document.getElementById("content").innerHTML = `
+    <div class="error-msg">
+      Nie mozna polaczyc z serwerem Alfred.<br><br>
+      Upewnij sie ze:<br>
+      &bull; Alfred API dziala (api.py na :8765)<br>
+      &bull; ngrok tunnel jest aktywny<br>
+      &bull; URL w konfiguracji jest aktualny
+    </div>`;
+}
+
+buildNav();
+</script>
+</body>
+</html>
