@@ -704,6 +704,29 @@ async def process_graph():
     except Exception:
         pass
 
+    # Integracja GUARDIAN — HIGH/CRITICAL findings eskalują status do critical
+    try:
+        from guardian import run_audit
+        findings = run_audit()
+        critical_nodes = set()
+        for f in findings:
+            if f["severity"] in ("HIGH", "CRITICAL"):
+                # Wyciagnij role z msg
+                for role in ALL_ROLES:
+                    if role in f["msg"]:
+                        critical_nodes.add(role)
+                # Wyciagnij SOP
+                sop_m = re.search(r"SOP-\d+", f["msg"])
+                if sop_m:
+                    critical_nodes.add(sop_m.group(0))
+
+        for node in nodes:
+            if node["id"] in critical_nodes:
+                node["status"] = "critical"
+                node["guardian_finding"] = True
+    except Exception:
+        pass
+
     return {"nodes": nodes, "links": PROCESS_LINKS}
 
 
