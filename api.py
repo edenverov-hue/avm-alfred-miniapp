@@ -413,6 +413,136 @@ def get_raci():
     return {"roles": roles, "matrix": matrix}
 
 
+@app.get("/api/analytics/weekly")
+async def analytics_weekly():
+    from datetime import timedelta
+
+    vault = VAULT / "ZADANIA"
+    today = date.today()
+    weeks = {}
+    for i in range(4):
+        start = today - timedelta(days=today.weekday() + 7 * i)
+        key = start.strftime("%d.%m")
+        weeks[key] = {"week": key, "open": 0, "closed": 0,
+                      "in_progress": 0, "overdue": 0}
+
+    if vault.exists():
+        for f in vault.glob("*.md"):
+            try:
+                content = f.read_text(encoding="utf-8", errors="ignore")
+                date_m = re.search(r'^date_created:\s*(\d{4}-\d{2}-\d{2})',
+                                   content, re.MULTILINE)
+                if not date_m:
+                    date_m = re.search(r'^date:\s*(\d{4}-\d{2}-\d{2})',
+                                       content, re.MULTILINE)
+                status_m = re.search(r'^status:\s*(\w+)',
+                                     content, re.MULTILINE)
+                deadline_m = re.search(r'^deadline:\s*(\d{4}-\d{2}-\d{2})',
+                                       content, re.MULTILINE)
+                if not (date_m and status_m):
+                    continue
+                task_date = datetime.strptime(
+                    date_m.group(1), "%Y-%m-%d").date()
+                status = status_m.group(1)
+                from datetime import timedelta as td
+                week_start = task_date - td(days=task_date.weekday())
+                key = week_start.strftime("%d.%m")
+                if key in weeks:
+                    if status == "closed":
+                        weeks[key]["closed"] += 1
+                    elif status == "in_progress":
+                        weeks[key]["in_progress"] += 1
+                    elif deadline_m:
+                        dl = datetime.strptime(
+                            deadline_m.group(1), "%Y-%m-%d").date()
+                        if dl < today and status not in ("closed", "cancelled"):
+                            weeks[key]["overdue"] += 1
+                        else:
+                            weeks[key]["open"] += 1
+                    else:
+                        weeks[key]["open"] += 1
+            except Exception:
+                pass
+
+    return {"weeks": list(reversed(list(weeks.values())))}
+
+
+@app.get("/api/analytics/roles")
+async def analytics_roles():
+    config = load_config()
+    vault = VAULT / "ZADANIA"
+    roles_cfg = config.get("roles", {})
+    workers = config.get("workers", {})
+
+    result = []
+    for role_name, role_data in roles_cfg.items():
+        person = None
+        for w in workers.values():
+            if role_name in w.get("roles", []) and w.get("active"):
+                person = w.get("person")
+                break
+
+        tasks_open = tasks_closed = 0
+        if vault.exists():
+            for f in vault.glob("*.md"):
+                try:
+                    content = f.read_text(encoding="utf-8", errors="ignore")
+                    if f"owner: {role_name}" not in content and \
+                       f"owner_role: {role_name}" not in content:
+                        continue
+                    status_m = re.search(r'^status:\s*(\w+)',
+                                         content, re.MULTILINE)
+                    if status_m:
+                        if status_m.group(1) == "closed":
+                            tasks_closed += 1
+                        else:
+                            tasks_open += 1
+                except Exception:
+                    pass
+
+        result.append({
+            "role": role_name,
+            "person": person or "\u2014",
+            "active": bool(role_data.get("primary_chat_id")),
+            "tasks_open": tasks_open,
+            "tasks_closed": tasks_closed,
+        })
+
+    return {"roles": [r for r in result
+                      if r["tasks_open"] > 0 or r["tasks_closed"] > 0
+                      or r["active"]]}
+
+
+@app.get("/api/analytics/scribe")
+async def analytics_scribe():
+    """Statystyki transkrypcji SCRIBE."""
+    spotkania = VAULT / "SPOTKANIA"
+    stats = {"total_meetings": 0, "total_tasks": 0,
+             "total_decisions": 0, "formats": {}}
+
+    if spotkania.exists():
+        for f in spotkania.glob("*.md"):
+            try:
+                content = f.read_text(encoding="utf-8", errors="ignore")
+                if "type: meeting" not in content:
+                    continue
+                stats["total_meetings"] += 1
+                tc = re.search(r'tasks:\s*(\d+)', content)
+                dc = re.search(r'decisions:\s*(\d+)', content)
+                src = re.search(r'format:\s*(.+)', content)
+                if tc:
+                    stats["total_tasks"] += int(tc.group(1))
+                if dc:
+                    stats["total_decisions"] += int(dc.group(1))
+                if src:
+                    fmt = src.group(1).strip()[:20]
+                    stats["formats"][fmt] = stats["formats"].get(fmt, 0) + 1
+            except Exception:
+                pass
+
+    return stats
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8765)

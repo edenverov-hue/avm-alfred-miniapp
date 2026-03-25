@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AVM Engineering — Alfred</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     :root {
       --bg: #0f0f0f;
@@ -126,6 +127,8 @@ const CEO_TABS = [
   {id:"workers",  label:"Zespol"},
   {id:"docs",     label:"Dokumenty"},
   {id:"raci",     label:"RACI"},
+  {id:"analytics",label:"Analityka"},
+  {id:"scribe",   label:"Transkrypcje"},
 ];
 const WORKER_TABS = [
   {id:"my_tasks",  label:"Moje zadania"},
@@ -165,6 +168,8 @@ async function loadTab(id) {
     case "my_profile":  await renderMyProfile(); break;
     case "my_docs":     await renderMyDocs(); break;
     case "help":        renderHelp(); break;
+    case "analytics":  await renderAnalytics(); break;
+    case "scribe":     await renderScribe(); break;
   }
   document.getElementById("sync-time").textContent =
     new Date().toLocaleTimeString("pl",{hour:"2-digit",minute:"2-digit"});
@@ -390,6 +395,139 @@ function renderHelp() {
         3. <strong>Problem zglaszaj od razu</strong> — nie czekaj na deadline
       </div>
     </div>`;
+}
+
+async function renderAnalytics() {
+  const [weekly, roles] = await Promise.all([
+    api("/api/analytics/weekly"),
+    api("/api/analytics/roles")
+  ]);
+  if (!weekly || !roles) return showError();
+
+  document.getElementById("content").innerHTML = `
+    <p class="section-title">Analityka AVM</p>
+    <div class="card">
+      <div class="card-title">ZADANIA &mdash; OSTATNIE 4 TYGODNIE</div>
+      <canvas id="chart-weekly" height="240"></canvas>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <div class="card-title">OBCIAZENIE ROL</div>
+      <canvas id="chart-roles" height="200"></canvas>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <div class="card-title">SZCZEGOLY ROL</div>
+      ${roles.roles.map(r => `
+        <div class="task-item">
+          <div class="priority-dot ${r.active ? 'priority-L' : 'priority-H'}"></div>
+          <div style="flex:1">
+            <div class="task-title">${r.role}${r.person !== '\u2014' ? ' &mdash; ' + r.person : ''}</div>
+            <div class="task-meta">
+              Otwarte: <b>${r.tasks_open}</b> &nbsp;|&nbsp;
+              Zamkniete: <b>${r.tasks_closed}</b>
+              ${!r.active ? ' &nbsp;|&nbsp; <span style="color:var(--red)">nieobsadzona</span>' : ''}
+            </div>
+          </div>
+        </div>
+      `).join("") || '<div style="color:var(--text-muted)">Brak danych</div>'}
+    </div>
+  `;
+
+  setTimeout(() => {
+    const wCtx = document.getElementById("chart-weekly");
+    if (wCtx && weekly.weeks.length) {
+      new Chart(wCtx, {
+        type: "bar",
+        data: {
+          labels: weekly.weeks.map(w => w.week),
+          datasets: [
+            { label: "Otwarte", backgroundColor: "#ffa000",
+              data: weekly.weeks.map(w => w.open) },
+            { label: "W toku", backgroundColor: "#1976D2",
+              data: weekly.weeks.map(w => w.in_progress) },
+            { label: "Zamkniete", backgroundColor: "#43a047",
+              data: weekly.weeks.map(w => w.closed) },
+            { label: "Przeterminowane", backgroundColor: "#e53935",
+              data: weekly.weeks.map(w => w.overdue) },
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { labels: { color: "#ccc", font: { size: 11 } } } },
+          scales: {
+            x: { stacked: true, ticks: { color: "#888" }, grid: { color: "#2a2a2a" } },
+            y: { stacked: true, beginAtZero: true, ticks: { color: "#888", precision: 0 }, grid: { color: "#2a2a2a" } }
+          }
+        }
+      });
+    }
+
+    const rCtx = document.getElementById("chart-roles");
+    const active = roles.roles.filter(r => r.tasks_open > 0 || r.tasks_closed > 0);
+    if (rCtx && active.length) {
+      new Chart(rCtx, {
+        type: "doughnut",
+        data: {
+          labels: active.map(r => r.role),
+          datasets: [{
+            data: active.map(r => r.tasks_open + r.tasks_closed),
+            backgroundColor: ["#C8860A","#1976D2","#43a047","#e53935","#9C27B0","#00BCD4","#FF5722","#607D8B"],
+            borderWidth: 2,
+            borderColor: "#1a1a1a"
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { labels: { color: "#ccc", font: { size: 11 } } } }
+        }
+      });
+    }
+  }, 200);
+}
+
+async function renderScribe() {
+  const data = await api("/api/analytics/scribe");
+  if (!data) return showError();
+  const fmts = Object.entries(data.formats || {});
+
+  document.getElementById("content").innerHTML = `
+    <p class="section-title">Transkrypcje SCRIBE</p>
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="stat-num">${data.total_meetings}</div>
+        <div class="stat-label">Spotkan</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num">${data.total_tasks}</div>
+        <div class="stat-label">Zadan wyekstrahowanych</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num">${data.total_decisions}</div>
+        <div class="stat-label">Decyzji</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num">${fmts.length}</div>
+        <div class="stat-label">Formatow</div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <div class="card-title">FORMATY PLIKOW</div>
+      ${fmts.length ? fmts.map(([fmt, count]) => `
+        <div class="task-item">
+          <div class="task-title">${fmt}</div>
+          <div class="task-meta">${count} plik${count > 1 ? 'i' : ''}</div>
+        </div>
+      `).join("") : '<div style="color:var(--text-muted)">Brak danych</div>'}
+    </div>
+    <div class="card" style="margin-top:12px">
+      <div class="card-title">GOOGLE DRIVE SYNC</div>
+      <div style="font-size:13px;color:var(--text-muted)">
+        Auto-sync: wtorek i piatek 08:30<br>
+        Folder: Drive AVM Engineering<br>
+        Protokoly: vault/SPOTKANIA/<br>
+        Karty zadan: vault/ZADANIA/
+      </div>
+    </div>
+  `;
 }
 
 function showError() {
