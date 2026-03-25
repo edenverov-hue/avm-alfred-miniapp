@@ -1,0 +1,418 @@
+#!/usr/bin/env python3
+"""
+Alfred API Server — serwuje dane AVM z config.json i vault.
+Port: 8765
+"""
+
+import json
+import re
+from datetime import datetime, date
+from pathlib import Path
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+
+VAULT = Path.home() / "alfred" / "vault"
+MEMORY = Path.home() / "alfred" / ".claude" / "memory"
+PORTAL = Path.home() / "alfred" / "portal"
+CONFIG_FILE = PORTAL / "config.json"
+
+app = FastAPI(title="Alfred API", version="1.0")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+# ─────────────────────────────────────────────
+# HELPERS
+# ─────────────────────────────────────────────
+
+def load_config():
+    return json.loads(CONFIG_FILE.read_text(encoding="utf-8"))
+
+
+def read_file(path: Path) -> str:
+    try:
+        return path.read_text(encoding="utf-8")
+    except Exception:
+        return ""
+
+
+def parse_md_table(content: str) -> list[dict]:
+    """Parsuje tabelę markdown do listy słowników."""
+    rows = []
+    lines = content.splitlines()
+    headers = []
+    for line in lines:
+        if not line.strip().startswith("|"):
+            continue
+        cols = [c.strip() for c in line.split("|")[1:-1]]
+        if not headers:
+            headers = cols
+        elif all(c.startswith("-") or c == "" for c in cols):
+            continue
+        else:
+            rows.append(dict(zip(headers, cols)))
+    return rows
+
+
+def parse_tasks_from_memory() -> list[dict]:
+    """Parsuje ZADANIA.md do listy tasków."""
+    content = read_file(MEMORY / "ZADANIA.md")
+    tasks = []
+    lines = content.splitlines()
+    headers = []
+    for line in lines:
+        if not line.strip().startswith("|"):
+            continue
+        cols = [c.strip() for c in line.split("|")[1:-1]]
+        if not headers:
+            if "Zadanie" in cols[0] or "Task" in cols[0]:
+                headers = cols
+        elif all(c.replace("-", "").replace(" ", "") == "" for c in cols):
+            continue
+        elif headers:
+            if len(cols) >= 4:
+                tasks.append({
+                    "title": cols[0],
+                    "owner_person": cols[1],
+                    "deadline": cols[2] if len(cols) > 2 else "",
+                    "priority": cols[3] if len(cols) > 3 else "M",
+                    "status": cols[4] if len(cols) > 4 else "open",
+                })
+    return tasks
+
+
+def parse_tasks_from_vault() -> list[dict]:
+    """Parsuje vault/ZADANIA/*.md do listy tasków."""
+    zadania_dir = VAULT / "ZADANIA"
+    tasks = []
+    if not zadania_dir.exists():
+        return tasks
+    for f in zadania_dir.glob("*.md"):
+        content = f.read_text(encoding="utf-8")
+        lines = content.splitlines()
+        fm = {}
+        in_fm = False
+        for l in lines:
+            if l.strip() == "---":
+                if not in_fm:
+                    in_fm = True
+                else:
+                    break
+            elif in_fm and ":" in l:
+                k, _, v = l.partition(":")
+                fm[k.strip()] = v.strip().strip('"')
+
+        if not fm.get("title"):
+            continue
+
+        # Map owner role
+        owner_role = ""
+        for role in ["CEO", "PM", "TECH", "FOREMAN", "KVP", "HUNTER", "FIN",
+                     "BRIGADE", "INSTALLER", "SERVICE", "AM"]:
+            if role in content:
+                owner_role = role
+                break
+
+        tasks.append({
+            "id": fm.get("task_id", f.stem),
+            "title": fm.get("title", f.stem),
+            "owner_role": owner_role,
+            "owner_person": fm.get("owner", ""),
+            "deadline": fm.get("deadline", ""),
+            "priority": fm.get("priority", "M"),
+            "status": fm.get("status", "open"),
+        })
+    return tasks
+
+
+def get_tasks_combined() -> list[dict]:
+    """Zwraca zadania z vault ZADANIA/ + memory ZADANIA.md (deduplikacja po tytule)."""
+    vault_tasks = parse_tasks_from_vault()
+    mem_tasks = parse_tasks_from_memory()
+    seen = {t["title"] for t in vault_tasks}
+    result = list(vault_tasks)
+    for t in mem_tasks:
+        if t["title"] not in seen:
+            # Enrich with owner_role from config if possible
+            config = load_config()
+            owner_role = ""
+            for role, rdata in config.get("roles", {}).items():
+                persons = rdata.get("persons", [])
+                owner_p = t.get("owner_person", "")
+            if any(owner_p and owner_p in p.get("person", "") for p in persons):
+                    owner_role = role
+                    break
+            result.append({
+                "id": f"MEM-{len(result)+1:03d}",
+                "title": t["title"],
+                "owner_role": owner_role,
+                "owner_person": t.get("owner_person", ""),
+                "deadline": t.get("deadline", ""),
+                "priority": t.get("priority", "M"),
+                "status": t.get("status", "open"),
+            })
+    return result
+
+
+def get_stats(tasks: list[dict]) -> dict:
+    today = date.today().isoformat()
+    open_count = sum(1 for t in tasks if t["status"] not in ("done", "closed"))
+    critical = sum(1 for t in tasks if t.get("priority") == "H"
+                   and t["status"] not in ("done", "closed"))
+    overdue = sum(1 for t in tasks if t.get("deadline") and t["deadline"] < today
+                  and t["status"] not in ("done", "closed"))
+    pending_v = sum(1 for t in tasks if t.get("status") == "pending_verification")
+    return {
+        "open": open_count,
+        "critical": critical,
+        "overdue": overdue,
+        "pending_verification": pending_v,
+    }
+
+
+HIERARCHY = {
+    "CEO": ["KVP", "PM", "FIN"],
+    "KVP": ["HUNTER", "FARMER", "AM"],
+    "PM": ["TECH", "FOREMAN", "SERVICE"],
+    "FOREMAN": ["BRIGADE"],
+    "BRIGADE": ["INSTALLER"],
+}
+
+REPORTS_TO = {
+    "KVP": "CEO", "PM": "CEO", "FIN": "CEO",
+    "HUNTER": "KVP", "FARMER": "KVP", "AM": "KVP",
+    "TECH": "PM", "FOREMAN": "PM", "SERVICE": "PM",
+    "BRIGADE": "FOREMAN", "INSTALLER": "BRIGADE",
+}
+
+
+def parse_library_index() -> list[dict]:
+    """Parsuje _LIBRARY/INDEX.md do listy dokumentów."""
+    content = read_file(VAULT / "_LIBRARY" / "INDEX.md")
+    docs = []
+    for line in content.splitlines():
+        if not line.strip().startswith("|"):
+            continue
+        cols = [c.strip() for c in line.split("|")[1:-1]]
+        if len(cols) < 8:
+            continue
+        if cols[0].startswith("-") or cols[0] == "ID":
+            continue
+        doc_id = cols[0]
+        name = cols[1]
+        file_path = cols[2]
+        doc_type_raw = cols[3].lower()
+        version = cols[5] if len(cols) > 5 else ""
+        owner = cols[7] if len(cols) > 7 else ""
+        status = cols[8] if len(cols) > 8 else "aktywny"
+
+        # Normalize type
+        if "sop" in doc_type_raw:
+            doc_type = "sop"
+        elif "jd" in doc_type_raw:
+            doc_type = "jd"
+        elif "instrukcj" in doc_type_raw or "instrukcje" in doc_type_raw:
+            doc_type = "instrukcja"
+        elif "system" in doc_type_raw:
+            doc_type = "system"
+        else:
+            doc_type = doc_type_raw
+
+        docs.append({
+            "id": doc_id,
+            "name": name,
+            "file": file_path,
+            "type": doc_type,
+            "version": version or "—",
+            "owner": owner,
+            "status": status,
+        })
+    return docs
+
+
+RACI_MATRIX_RAW = {
+    "SOP-01": {"CEO": "I", "KVP": "A", "HUNTER": "R", "FARMER": "R", "AM": "I"},
+    "SOP-02": {"AM": "A", "KVP": "C", "PM": "I"},
+    "SOP-03": {"PM": "A", "TECH": "C", "FOREMAN": "C", "AM": "I", "FIN": "C"},
+    "SOP-04": {"PM": "A", "KVP": "C", "AM": "I"},
+    "SOP-05": {"PM": "A", "TECH": "R", "FOREMAN": "C", "FIN": "C"},
+    "SOP-06": {"FOREMAN": "A", "BRIGADE": "R", "PM": "I"},
+    "SOP-07": {"PM": "A", "FOREMAN": "R", "FIN": "I"},
+    "SOP-08": {"SERVICE": "A", "AM": "R", "PM": "I"},
+    "SOP-09": {"FIN": "A", "PM": "R"},
+    "SOP-10": {"FIN": "A", "PM": "C"},
+    "SOP-11": {"PM": "A", "AM": "R"},
+}
+
+ALL_ROLES = ["CEO", "KVP", "HUNTER", "FARMER", "PM", "TECH",
+             "FOREMAN", "BRIGADE", "INSTALLER", "AM", "FIN", "SERVICE"]
+
+# Role → relevant SOPs (A or R)
+ROLE_DOCS_MAP = {
+    "CEO":      ["DOC-SYS-001", "DOC-SYS-002"],
+    "KVP":      ["DOC-JD-001", "DOC-SOP-003", "DOC-SOP-014", "DOC-INS-004",
+                 "DOC-INS-005", "DOC-INS-006"],
+    "HUNTER":   ["DOC-JD-002", "DOC-SOP-003", "DOC-INS-005"],
+    "FARMER":   ["DOC-JD-003", "DOC-SOP-003"],
+    "PM":       ["DOC-JD-004", "DOC-SOP-005", "DOC-SOP-006", "DOC-SOP-007",
+                 "DOC-SOP-008", "DOC-SOP-009", "DOC-SOP-013", "DOC-INS-007"],
+    "TECH":     ["DOC-JD-006", "DOC-INS-003", "DOC-INS-008", "DOC-INS-009", "DOC-INS-010"],
+    "FOREMAN":  ["DOC-JD-007", "DOC-SOP-008", "DOC-SOP-009", "DOC-INS-001",
+                 "DOC-INS-002", "DOC-INS-003"],
+    "BRIGADE":  ["DOC-JD-008", "DOC-SOP-008"],
+    "INSTALLER":["DOC-JD-009", "DOC-SOP-008"],
+    "AM":       ["DOC-SOP-004", "DOC-SOP-010"],
+    "FIN":      ["DOC-SOP-011", "DOC-SOP-012"],
+    "SERVICE":  ["DOC-SOP-010"],
+}
+
+
+# ─────────────────────────────────────────────
+# ENDPOINTS
+# ─────────────────────────────────────────────
+
+@app.get("/api/status")
+def get_status():
+    return {"ok": True, "timestamp": datetime.now().isoformat()}
+
+
+@app.get("/api/dashboard")
+def get_dashboard():
+    tasks = get_tasks_combined()
+    return {
+        "tasks": tasks,
+        "stats": get_stats(tasks),
+    }
+
+
+@app.get("/api/org")
+def get_org():
+    config = load_config()
+    roles_data = {}
+
+    for role, rdata in config.get("roles", {}).items():
+        primary_id = rdata.get("primary_chat_id")
+        person = None
+        active = False
+
+        if primary_id:
+            worker = config["workers"].get(str(primary_id), {})
+            person = worker.get("person")
+            active = bool(person)
+        else:
+            persons = [p for p in rdata.get("persons", [])
+                       if not p.get("to") and p.get("person")]
+            if persons:
+                person = persons[0]["person"]
+
+        roles_data[role] = {
+            "role": role,
+            "person": person,
+            "chat_id": primary_id,
+            "active": active,
+            "reports_to": REPORTS_TO.get(role),
+        }
+
+    return {
+        "roles": roles_data,
+        "hierarchy": HIERARCHY,
+    }
+
+
+@app.get("/api/worker/{chat_id}")
+def get_worker(chat_id: str):
+    config = load_config()
+    worker = config["workers"].get(chat_id, {})
+    if not worker:
+        return JSONResponse(status_code=404, content={"error": "Worker not found"})
+
+    roles = worker.get("roles", [])
+    primary_role = worker.get("primary_role", roles[0] if roles else "")
+
+    # Zadania tego pracownika
+    tasks = get_tasks_combined()
+    worker_tasks = [
+        t for t in tasks
+        if t.get("owner_person", "") in worker.get("person", "")
+        or any(r in (t.get("owner_role", "")) for r in roles)
+    ]
+
+    # KPI z vault/ROLE/
+    kpi = []
+    for role in roles:
+        role_file = VAULT / "ROLE" / f"{role}.md"
+        if role_file.exists():
+            content = role_file.read_text(encoding="utf-8")
+            lines = content.splitlines()
+            kpi_start = next(
+                (i for i, l in enumerate(lines) if "KPI" in l and "##" in l),
+                None
+            )
+            if kpi_start is not None:
+                for line in lines[kpi_start + 1:kpi_start + 10]:
+                    if line.startswith("|") and not line.startswith("|-"):
+                        cols = [c.strip() for c in line.split("|")[1:-1]]
+                        if len(cols) >= 2 and cols[0] and cols[0] != "KPI":
+                            kpi.append(f"{cols[0]}: {cols[2] if len(cols) > 2 else cols[1]}")
+
+    # Dokumenty
+    all_docs = parse_library_index()
+    doc_ids = set()
+    for role in roles:
+        doc_ids.update(ROLE_DOCS_MAP.get(role, []))
+    documents = [d for d in all_docs if d["id"] in doc_ids]
+
+    return {
+        "person": worker.get("person", ""),
+        "roles": roles,
+        "primary_role": primary_role,
+        "registered": worker.get("registered", ""),
+        "tasks": worker_tasks[:10],
+        "kpi": kpi[:8],
+        "documents": documents[:10],
+    }
+
+
+@app.get("/api/documents/{role}")
+def get_documents(role: str):
+    all_docs = parse_library_index()
+
+    if role == "ALL":
+        return {"role": "ALL", "documents": all_docs}
+
+    role_upper = role.upper()
+    doc_ids = set(ROLE_DOCS_MAP.get(role_upper, []))
+
+    if not doc_ids:
+        # Fallback: filter by owner field
+        docs = [d for d in all_docs
+                if role_upper in d.get("owner", "").upper()
+                and d.get("status") != "gap"]
+    else:
+        docs = [d for d in all_docs if d["id"] in doc_ids]
+
+    return {"role": role_upper, "documents": docs}
+
+
+@app.get("/api/raci")
+def get_raci():
+    roles = ALL_ROLES[:6]  # Frontend shows 6 columns
+    matrix = []
+    for sop, sop_roles in RACI_MATRIX_RAW.items():
+        row = {"sop": sop}
+        for role in roles:
+            row[role] = sop_roles.get(role, "")
+        matrix.append(row)
+    return {"roles": roles, "matrix": matrix}
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8765)
