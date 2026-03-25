@@ -584,6 +584,135 @@ async def submit_gate(gate_id: str, request: Request):
 
 
 # ─────────────────────────────────────────────
+# PROJECTS
+# ─────────────────────────────────────────────
+
+
+def parse_project_frontmatter(content: str) -> dict:
+    """Parsuje frontmatter z karty projektu."""
+    fm = {}
+    in_fm = False
+    for line in content.splitlines():
+        if line.strip() == "---":
+            if not in_fm:
+                in_fm = True
+            else:
+                break
+        elif in_fm and ":" in line:
+            k, _, v = line.partition(":")
+            fm[k.strip()] = v.strip().strip('"')
+    return fm
+
+
+@app.get("/api/projects")
+async def get_projects():
+    """Lista projektów z vault/PROJEKTY/ + powiązane zadania i ryzyka."""
+    projects_dir = VAULT / "PROJEKTY"
+    tasks_dir = VAULT / "ZADANIA"
+    projects = []
+
+    if not projects_dir.exists():
+        return {"projects": []}
+
+    # Guardian findings cache
+    guardian_findings = []
+    try:
+        import sys as _sys
+        _sys.path.insert(0, str(Path.home() / "alfred" / "agents"))
+        from guardian import run_audit
+        guardian_findings = [f for f in run_audit()
+                            if f["severity"] in ("HIGH", "CRITICAL")]
+    except Exception:
+        pass
+
+    for f in sorted(projects_dir.glob("*.md"), reverse=True):
+        try:
+            content = f.read_text(encoding="utf-8")
+        except Exception:
+            continue
+
+        fm = parse_project_frontmatter(content)
+        if fm.get("type") != "project":
+            continue
+
+        project_id = f.stem
+        client = fm.get("client_name", fm.get("title", fm.get("client", project_id)))
+        sop = fm.get("sop", fm.get("sop_ref", ""))
+        status = fm.get("status", "open")
+        phase = fm.get("phase", fm.get("gate", sop))
+        pm = fm.get("pm", "")
+        deadline = fm.get("deadline", "")
+        budget = fm.get("budget", "")
+
+        # Powiązane zadania
+        tasks_open = 0
+        tasks_closed = 0
+        project_tasks = []
+        if tasks_dir.exists():
+            for tf in tasks_dir.glob("*.md"):
+                try:
+                    tc = tf.read_text(encoding="utf-8")
+                    if client.split()[0] not in tc and project_id not in tc and sop not in tc:
+                        continue
+                    tfm = parse_project_frontmatter(tc)
+                    task_status = tfm.get("status", "open")
+                    if task_status in ("closed", "cancelled"):
+                        tasks_closed += 1
+                    else:
+                        tasks_open += 1
+                    # Wyciągnij tytuł
+                    title_line = next(
+                        (l.lstrip("# ").strip() for l in tc.splitlines()
+                         if l.startswith("# ")), tf.stem)
+                    project_tasks.append({
+                        "file": tf.name,
+                        "title": title_line[:60],
+                        "owner": tfm.get("owner", ""),
+                        "deadline": tfm.get("deadline", ""),
+                        "priority": tfm.get("priority", "M"),
+                        "status": task_status,
+                    })
+                except Exception:
+                    pass
+
+        # Risk signal z GUARDIAN
+        has_risk = any(
+            (sop and sop in gf["msg"]) or (client and client.split()[0] in gf["msg"])
+            for gf in guardian_findings
+        )
+
+        projects.append({
+            "id": project_id,
+            "client": client,
+            "sop": sop,
+            "phase": phase,
+            "pm": pm,
+            "deadline": deadline,
+            "budget": budget,
+            "status": status,
+            "tasks_open": tasks_open,
+            "tasks_closed": tasks_closed,
+            "has_risk": has_risk,
+            "tasks": project_tasks[:20],
+        })
+
+    return {"projects": projects}
+
+
+@app.get("/api/projects/{project_id}")
+async def get_project_detail(project_id: str):
+    """Szczegóły pojedynczego projektu."""
+    projects_dir = VAULT / "PROJEKTY"
+    filepath = projects_dir / f"{project_id}.md"
+    if not filepath.exists():
+        return JSONResponse(status_code=404, content={"error": "Projekt nie znaleziony"})
+
+    content = filepath.read_text(encoding="utf-8")
+    fm = parse_project_frontmatter(content)
+    return {"id": project_id, **fm, "content": content}
+
+
+# ─────────────────────────────────────────────
 # PROCESS GRAPH
 # ─────────────────────────────────────────────
 

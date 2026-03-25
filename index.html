@@ -139,6 +139,7 @@ const CEO_TABS = [
   {id:"docs",     label:"Dokumenty"},
   {id:"raci",     label:"RACI"},
   {id:"processes",label:"Procesy"},
+  {id:"projects", label:"Projekty"},
   {id:"analytics",label:"Analityka"},
   {id:"scribe",   label:"Transkrypcje"},
 ];
@@ -180,6 +181,7 @@ async function loadTab(id) {
     case "my_profile":  await renderMyProfile(); break;
     case "my_docs":     await renderMyDocs(); break;
     case "help":        renderHelp(); break;
+    case "projects":   await renderProjects(); break;
     case "processes":  await renderProcessGraph(); break;
     case "analytics":  await renderAnalytics(); break;
     case "scribe":     await renderScribe(); break;
@@ -651,6 +653,70 @@ async function renderScribe() {
       </div>
     </div>
   `;
+}
+
+async function renderProjects() {
+  const data = await api("/api/projects");
+  if (!data) return showError();
+  const projects = data.projects || [];
+  const c = document.getElementById("content");
+
+  if (!projects.length) {
+    c.innerHTML = `<p class="section-title">Projekty</p>
+      <div class="card"><div style="color:var(--text-muted);text-align:center;padding:20px">
+        Brak projektow w vault/PROJEKTY/
+      </div></div>`;
+    return;
+  }
+
+  c.innerHTML = `
+    <p class="section-title">Projekty (${projects.length})</p>
+    ${projects.map(p => `
+      <div class="card" style="margin-bottom:10px;cursor:pointer;position:relative"
+           onclick="toggleProjectTasks('${p.id}')">
+        ${p.has_risk ? '<div style="position:absolute;top:8px;right:10px;color:#ef4444;font-size:18px">&#9888;</div>' : ''}
+        <div style="font-size:15px;font-weight:600;margin-bottom:4px">${p.client}</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px">
+          ${p.sop || ''} ${p.phase ? '&bull; '+p.phase : ''} ${p.pm ? '&bull; PM: '+p.pm : ''}
+        </div>
+        <div style="display:flex;gap:12px;font-size:13px;margin-bottom:4px">
+          <span>Deadline: <b>${p.deadline || '—'}</b></span>
+          ${p.budget ? '<span>Budzet: <b>'+Number(p.budget).toLocaleString('pl')+' PLN</b></span>' : ''}
+        </div>
+        <div style="display:flex;gap:16px;font-size:12px">
+          <span style="color:var(--accent)">&#9679; Otwarte: ${p.tasks_open}</span>
+          <span style="color:var(--text-muted)">&#10003; Zamkniete: ${p.tasks_closed}</span>
+          <span style="color:${p.status==='active'||p.status==='open'?'var(--accent)':'var(--text-muted)'}">
+            ${p.status}
+          </span>
+        </div>
+        <div id="tasks-${p.id}" style="display:none;margin-top:10px;border-top:1px solid var(--border);padding-top:8px">
+          ${(p.tasks||[]).length ? p.tasks.map(t => `
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:12px">
+              <div style="flex:1">
+                <span style="color:${t.priority==='H'?'#ef4444':'var(--accent)'}">
+                  ${t.priority==='H'?'&#128308;':'&#128993;'}
+                </span>
+                ${t.title}
+              </div>
+              <div style="display:flex;gap:8px;color:var(--text-muted);flex-shrink:0">
+                <span>${t.owner||''}</span>
+                <span>${t.deadline||''}</span>
+                <span style="color:${t.status==='closed'?'var(--text-muted)':'var(--accent)'}">
+                  ${t.status}
+                </span>
+              </div>
+            </div>
+          `).join('') : '<div style="color:var(--text-muted);font-size:12px">Brak zadan</div>'}
+        </div>
+      </div>
+    `).join("")}
+  `;
+}
+
+function toggleProjectTasks(id) {
+  const el = document.getElementById('tasks-' + id);
+  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
 }
 
 function showError() {
