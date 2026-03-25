@@ -110,7 +110,7 @@ document.getElementById("user-badge").textContent = is_ceo ? "CEO" : "Pracownik"
 
 async function api(endpoint) {
   try {
-    const r = await fetch(API_BASE + endpoint, { headers: {"X-Chat-Id": chat_id} });
+    const r = await fetch(API_BASE + endpoint, { headers: {"X-Chat-Id": chat_id, "ngrok-skip-browser-warning": "true"} });
     if (!r.ok) throw new Error("HTTP " + r.status);
     return await r.json();
   } catch(e) {
