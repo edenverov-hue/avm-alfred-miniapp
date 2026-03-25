@@ -107,8 +107,8 @@
 </div>
 
 <script>
-// Alfred aktualizuje ten URL automatycznie po kazdym uruchomieniu ngrok
-const API_BASE = window.ALFRED_API_URL || "https://wingless-treena-cropless.ngrok-free.dev";
+// Staly URL — VPS Hetzner
+const API_BASE = window.ALFRED_API_URL || "http://178.104.96.196:8765";
 const CEO_CHAT_ID = "950876530";
 
 const tg = window.Telegram?.WebApp;
@@ -122,7 +122,7 @@ document.getElementById("user-badge").textContent = is_ceo ? "CEO" : "Pracownik"
 
 async function api(endpoint) {
   try {
-    const r = await fetch(API_BASE + endpoint, { headers: {"X-Chat-Id": chat_id, "ngrok-skip-browser-warning": "true"} });
+    const r = await fetch(API_BASE + endpoint, { headers: {"X-Chat-Id": chat_id} });
     if (!r.ok) throw new Error("HTTP " + r.status);
     return await r.json();
   } catch(e) {
@@ -724,9 +724,9 @@ function showError() {
     <div class="error-msg">
       Nie mozna polaczyc z serwerem Alfred.<br><br>
       Upewnij sie ze:<br>
-      &bull; Alfred API dziala (api.py na :8765)<br>
-      &bull; ngrok tunnel jest aktywny<br>
-      &bull; URL w konfiguracji jest aktualny
+      &bull; Alfred API dziala na VPS (178.104.96.196:8765)<br>
+      &bull; Kontener Docker jest aktywny<br>
+      &bull; Port 8765 jest otwarty w firewall
     </div>`;
 }
 
