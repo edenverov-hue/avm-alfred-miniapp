@@ -9,9 +9,14 @@ import re
 from datetime import datetime, date
 from pathlib import Path
 
-from fastapi import FastAPI
+import sys
+sys.path.insert(0, str(Path.home() / "alfred" / "agents"))
+
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+
+from gate_engine import validate_gate, create_project_card, get_gate_definition, GATES
 
 VAULT = Path.home() / "alfred" / "vault"
 MEMORY = Path.home() / "alfred" / ".claude" / "memory"
@@ -541,6 +546,165 @@ async def analytics_scribe():
                 pass
 
     return stats
+
+
+# ─────────────────────────────────────────────
+# GATE ENDPOINTS
+# ─────────────────────────────────────────────
+
+@app.get("/api/gates")
+async def list_gates():
+    """Lista dostępnych GATE."""
+    return {"gates": [
+        {"gate_id": gid, "sop": g["sop"], "title": g["title"]}
+        for gid, g in GATES.items()
+    ]}
+
+
+@app.get("/api/gates/{gate_id}")
+async def get_gate(gate_id: str):
+    """Definicja GATE — pola formularza."""
+    defn = get_gate_definition(gate_id)
+    if not defn:
+        return JSONResponse(status_code=404, content={"error": f"GATE {gate_id} nie istnieje"})
+    return defn
+
+
+@app.post("/api/gates/{gate_id}/submit")
+async def submit_gate(gate_id: str, request: Request):
+    """Walidacja i submit formularza GATE."""
+    data = await request.json()
+    result = validate_gate(gate_id, data)
+
+    if result["passed"]:
+        filename = create_project_card(gate_id, data)
+        result["project_card"] = filename
+
+    return result
+
+
+# ─────────────────────────────────────────────
+# PROCESS GRAPH
+# ─────────────────────────────────────────────
+
+PROCESS_NODES = [
+    # SOPy
+    {"id": "SOP-01", "label": "Sprzedaz", "type": "sop", "desc": "Proces sprzedazy B2C/B2B"},
+    {"id": "SOP-02", "label": "Zapytania", "type": "sop", "desc": "Obsluga zapytan i zgloszen klientow"},
+    {"id": "SOP-03", "label": "Zmiany/CR", "type": "sop", "desc": "Zarzadzanie zmianami i pracami dodatkowymi"},
+    {"id": "SOP-04", "label": "Przekazanie", "type": "gate", "desc": "Przekazanie projektu ze sprzedazy do realizacji"},
+    {"id": "SOP-05", "label": "Planowanie", "type": "sop", "desc": "Planowanie realizacji i zasobow"},
+    {"id": "SOP-06", "label": "Montaz", "type": "gate", "desc": "Zarzadzanie realizacja i kontrola montazu"},
+    {"id": "SOP-07", "label": "Zakupy", "type": "sop", "desc": "Zakupy i materialy"},
+    {"id": "SOP-08", "label": "Serwis", "type": "sop", "desc": "Serwis i reklamacje"},
+    {"id": "SOP-09", "label": "Zamkniecie", "type": "gate", "desc": "Finansowe zamkniecie projektu"},
+    {"id": "SOP-10", "label": "Faktury", "type": "sop", "desc": "Rachunki i platnosci"},
+    {"id": "SOP-11", "label": "Statusy", "type": "sop", "desc": "Statusy projektu i komunikacja"},
+    # Role
+    {"id": "CEO", "label": "CEO", "type": "role", "desc": "Dyrektor generalny"},
+    {"id": "KVP", "label": "KVP", "type": "role", "desc": "Kierownik dzialu sprzedazy"},
+    {"id": "PM", "label": "PM", "type": "role", "desc": "Menedzer projektow"},
+    {"id": "TECH", "label": "TECH", "type": "role", "desc": "Glowny specjalista techniczny"},
+    {"id": "FOREMAN", "label": "FOREMAN", "type": "role", "desc": "Prораб / Kierownik budowy"},
+    {"id": "BRIGADE", "label": "BRIGADE", "type": "role", "desc": "Brygadzista"},
+    {"id": "INSTALLER", "label": "INSTALLER", "type": "role", "desc": "Montazysta"},
+    {"id": "AM", "label": "AM", "type": "role", "desc": "Account Manager"},
+    {"id": "FIN", "label": "FIN", "type": "role", "desc": "Finanse"},
+    {"id": "SERVICE", "label": "SERVICE", "type": "role", "desc": "Serwis"},
+    {"id": "HUNTER", "label": "HUNTER", "type": "role", "desc": "Menedzer sprzedazy (akwizycja)"},
+    {"id": "FARMER", "label": "FARMER", "type": "role", "desc": "Menedzer sprzedazy (relacje)"},
+]
+
+PROCESS_LINKS = [
+    # Flow glowny
+    {"source": "SOP-01", "target": "SOP-04", "type": "flow"},
+    {"source": "SOP-04", "target": "SOP-05", "type": "flow"},
+    {"source": "SOP-05", "target": "SOP-06", "type": "flow"},
+    {"source": "SOP-06", "target": "SOP-09", "type": "flow"},
+    {"source": "SOP-09", "target": "SOP-10", "type": "flow"},
+    # Boczne
+    {"source": "SOP-01", "target": "SOP-02", "type": "flow"},
+    {"source": "SOP-01", "target": "SOP-03", "type": "flow"},
+    {"source": "SOP-05", "target": "SOP-07", "type": "flow"},
+    {"source": "SOP-06", "target": "SOP-08", "type": "flow"},
+    {"source": "SOP-06", "target": "SOP-11", "type": "flow"},
+    # RACI: Accountable
+    {"source": "KVP", "target": "SOP-01", "type": "accountable"},
+    {"source": "AM", "target": "SOP-02", "type": "accountable"},
+    {"source": "PM", "target": "SOP-03", "type": "accountable"},
+    {"source": "PM", "target": "SOP-04", "type": "accountable"},
+    {"source": "PM", "target": "SOP-05", "type": "accountable"},
+    {"source": "FOREMAN", "target": "SOP-06", "type": "accountable"},
+    {"source": "PM", "target": "SOP-07", "type": "accountable"},
+    {"source": "SERVICE", "target": "SOP-08", "type": "accountable"},
+    {"source": "FIN", "target": "SOP-09", "type": "accountable"},
+    {"source": "FIN", "target": "SOP-10", "type": "accountable"},
+    {"source": "PM", "target": "SOP-11", "type": "accountable"},
+    # Rola hierarchy
+    {"source": "CEO", "target": "KVP", "type": "hierarchy"},
+    {"source": "CEO", "target": "PM", "type": "hierarchy"},
+    {"source": "CEO", "target": "FIN", "type": "hierarchy"},
+    {"source": "KVP", "target": "HUNTER", "type": "hierarchy"},
+    {"source": "KVP", "target": "FARMER", "type": "hierarchy"},
+    {"source": "KVP", "target": "AM", "type": "hierarchy"},
+    {"source": "PM", "target": "TECH", "type": "hierarchy"},
+    {"source": "PM", "target": "FOREMAN", "type": "hierarchy"},
+    {"source": "PM", "target": "SERVICE", "type": "hierarchy"},
+    {"source": "FOREMAN", "target": "BRIGADE", "type": "hierarchy"},
+    {"source": "BRIGADE", "target": "INSTALLER", "type": "hierarchy"},
+]
+
+
+def _get_node_status(node_id: str) -> str:
+    """Sprawdza status wezla na podstawie vault."""
+    # GATE: sprawdz czy sa otwarte zadania
+    zadania_dir = VAULT / "ZADANIA"
+    if not zadania_dir.exists():
+        return "ok"
+    for f in zadania_dir.glob("*.md"):
+        try:
+            content = f.read_text(encoding="utf-8", errors="ignore")
+            if node_id not in content:
+                continue
+            status_m = re.search(r'^status:\s*(\w+)', content, re.MULTILINE)
+            deadline_m = re.search(r'^deadline:\s*(\d{4}-\d{2}-\d{2})', content, re.MULTILINE)
+            if status_m and status_m.group(1) not in ("closed", "cancelled"):
+                if deadline_m:
+                    dl = datetime.strptime(deadline_m.group(1), "%Y-%m-%d").date()
+                    if dl < date.today():
+                        return "critical"
+                return "active"
+        except Exception:
+            pass
+    return "ok"
+
+
+@app.get("/api/process-graph")
+async def process_graph():
+    """Graf procesow AVM: nodes + links z live statusem."""
+    nodes = []
+    for n in PROCESS_NODES:
+        node = dict(n)
+        node["status"] = _get_node_status(n["id"])
+        nodes.append(node)
+
+    # Sprawdz obsadzenie rol
+    try:
+        config = load_config()
+        workers = config.get("workers", {})
+        for node in nodes:
+            if node["type"] == "role":
+                role_id = node["id"]
+                assigned = any(
+                    role_id in w.get("roles", []) and w.get("active")
+                    for w in workers.values()
+                )
+                if not assigned:
+                    node["status"] = "unassigned"
+    except Exception:
+        pass
+
+    return {"nodes": nodes, "links": PROCESS_LINKS}
 
 
 if __name__ == "__main__":

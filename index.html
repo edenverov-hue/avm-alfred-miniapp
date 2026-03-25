@@ -6,6 +6,7 @@
   <title>AVM Engineering — Alfred</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
   <style>
     :root {
       --bg: #0f0f0f;
@@ -75,6 +76,16 @@
     .loading { text-align: center; padding: 40px; color: var(--text-muted); }
     .error-msg { background: #2a1515; border: 1px solid var(--red); border-radius: 8px; padding: 16px; color: var(--red); font-size: 13px; }
     .section-title { font-size: 16px; font-weight: 600; margin-bottom: 12px; margin-top: 4px; }
+    .graph-container { width: 100%; height: 420px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; position: relative; touch-action: none; }
+    .graph-container svg { width: 100%; height: 100%; }
+    .node-panel { background: var(--surface); border: 1px solid var(--accent); border-radius: var(--radius); padding: 14px; margin-top: 12px; }
+    .node-panel .np-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+    .node-panel .np-type { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+    .node-panel .np-desc { font-size: 13px; margin-top: 8px; color: var(--text); }
+    .node-panel .np-status { font-size: 12px; margin-top: 6px; font-weight: 600; }
+    .graph-legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; font-size: 11px; color: var(--text-muted); }
+    .graph-legend span { display: flex; align-items: center; gap: 4px; }
+    .graph-legend .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
     .raci-table { width: 100%; border-collapse: collapse; font-size: 12px; overflow-x: auto; display: block; }
     .raci-table th { padding: 6px 8px; background: var(--border); text-align: left; font-weight: 600; color: var(--text-muted); }
     .raci-table td { padding: 6px 8px; border-bottom: 1px solid var(--border); }
@@ -127,6 +138,7 @@ const CEO_TABS = [
   {id:"workers",  label:"Zespol"},
   {id:"docs",     label:"Dokumenty"},
   {id:"raci",     label:"RACI"},
+  {id:"processes",label:"Procesy"},
   {id:"analytics",label:"Analityka"},
   {id:"scribe",   label:"Transkrypcje"},
 ];
@@ -168,6 +180,7 @@ async function loadTab(id) {
     case "my_profile":  await renderMyProfile(); break;
     case "my_docs":     await renderMyDocs(); break;
     case "help":        renderHelp(); break;
+    case "processes":  await renderProcessGraph(); break;
     case "analytics":  await renderAnalytics(); break;
     case "scribe":     await renderScribe(); break;
   }
@@ -395,6 +408,116 @@ function renderHelp() {
         3. <strong>Problem zglaszaj od razu</strong> — nie czekaj na deadline
       </div>
     </div>`;
+}
+
+async function renderProcessGraph() {
+  const data = await api("/api/process-graph");
+  if (!data) return showError();
+
+  const TYPE_COLORS = { sop: "#1976D2", gate: "#e53935", role: "#43a047" };
+  const STATUS_STROKE = { ok: "#555", active: "#ffa000", critical: "#e53935", unassigned: "#666" };
+  const TYPE_LABELS = { sop: "SOP", gate: "GATE", role: "Rola" };
+
+  document.getElementById("content").innerHTML = `
+    <p class="section-title">Mapa procesow AVM</p>
+    <div class="graph-container" id="graph-box"></div>
+    <div class="graph-legend">
+      <span><span class="dot" style="background:#1976D2"></span> SOP</span>
+      <span><span class="dot" style="background:#e53935"></span> GATE</span>
+      <span><span class="dot" style="background:#43a047"></span> Rola</span>
+      <span><span class="dot" style="background:#ffa000;border:2px solid #ffa000"></span> Aktywne</span>
+      <span><span class="dot" style="background:transparent;border:2px dashed #666"></span> Nieobsadzone</span>
+    </div>
+    <div id="node-detail"></div>
+  `;
+
+  const box = document.getElementById("graph-box");
+  const W = box.clientWidth;
+  const H = 420;
+
+  const svg = d3.select("#graph-box").append("svg")
+    .attr("viewBox", `0 0 ${W} ${H}`)
+    .attr("preserveAspectRatio", "xMidYMid meet");
+
+  // Arrow marker
+  svg.append("defs").append("marker")
+    .attr("id", "arrow").attr("viewBox", "0 0 10 6")
+    .attr("refX", 22).attr("refY", 3)
+    .attr("markerWidth", 8).attr("markerHeight", 6)
+    .attr("orient", "auto")
+    .append("path").attr("d", "M0,0 L10,3 L0,6 Z").attr("fill", "#555");
+
+  const nodes = data.nodes.map(d => ({...d}));
+  const links = data.links.filter(l => l.type === "flow" || l.type === "accountable")
+    .map(d => ({...d}));
+
+  const sim = d3.forceSimulation(nodes)
+    .force("link", d3.forceLink(links).id(d => d.id).distance(d => d.type === "flow" ? 70 : 90))
+    .force("charge", d3.forceManyBody().strength(-200))
+    .force("center", d3.forceCenter(W / 2, H / 2))
+    .force("collision", d3.forceCollide(28))
+    .force("x", d3.forceX(W / 2).strength(0.05))
+    .force("y", d3.forceY(H / 2).strength(0.05));
+
+  const link = svg.append("g").selectAll("line")
+    .data(links).join("line")
+    .attr("stroke", d => d.type === "flow" ? "#555" : "#333")
+    .attr("stroke-width", d => d.type === "flow" ? 2 : 1)
+    .attr("stroke-dasharray", d => d.type === "accountable" ? "4,3" : "none")
+    .attr("marker-end", d => d.type === "flow" ? "url(#arrow)" : "");
+
+  const node = svg.append("g").selectAll("g")
+    .data(nodes).join("g")
+    .attr("cursor", "pointer")
+    .call(d3.drag()
+      .on("start", (e, d) => { if (!e.active) sim.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+      .on("drag", (e, d) => { d.fx = e.x; d.fy = e.y; })
+      .on("end", (e, d) => { if (!e.active) sim.alphaTarget(0); d.fx = null; d.fy = null; })
+    );
+
+  node.append("circle")
+    .attr("r", d => d.type === "role" ? 16 : 20)
+    .attr("fill", d => TYPE_COLORS[d.type] || "#555")
+    .attr("stroke", d => STATUS_STROKE[d.status] || "#555")
+    .attr("stroke-width", d => d.status === "critical" ? 3 : d.status === "unassigned" ? 2 : 1.5)
+    .attr("stroke-dasharray", d => d.status === "unassigned" ? "4,2" : "none")
+    .attr("opacity", d => d.status === "unassigned" ? 0.5 : 0.9);
+
+  node.append("text")
+    .text(d => d.type === "role" ? d.label.substring(0, 3) : d.id.replace("SOP-", ""))
+    .attr("text-anchor", "middle").attr("dy", "0.35em")
+    .attr("fill", "#fff").attr("font-size", d => d.type === "role" ? "8px" : "9px")
+    .attr("font-weight", 700).attr("pointer-events", "none");
+
+  node.on("click", (e, d) => {
+    const statusText = d.status === "critical" ? "PRZETERMINOWANE"
+      : d.status === "active" ? "AKTYWNE ZADANIA"
+      : d.status === "unassigned" ? "NIEOBSADZONA"
+      : "OK";
+    const statusColor = d.status === "critical" ? "var(--red)"
+      : d.status === "active" ? "var(--yellow)"
+      : d.status === "unassigned" ? "var(--text-muted)"
+      : "var(--green)";
+
+    document.getElementById("node-detail").innerHTML = `
+      <div class="node-panel">
+        <div class="np-type">${TYPE_LABELS[d.type] || d.type}</div>
+        <div class="np-title">${d.id} &mdash; ${d.label}</div>
+        <div class="np-desc">${d.desc}</div>
+        <div class="np-status" style="color:${statusColor}">${statusText}</div>
+      </div>`;
+  });
+
+  sim.on("tick", () => {
+    link
+      .attr("x1", d => Math.max(5, Math.min(W-5, d.source.x)))
+      .attr("y1", d => Math.max(5, Math.min(H-5, d.source.y)))
+      .attr("x2", d => Math.max(5, Math.min(W-5, d.target.x)))
+      .attr("y2", d => Math.max(5, Math.min(H-5, d.target.y)));
+    node.attr("transform", d =>
+      `translate(${Math.max(20, Math.min(W-20, d.x))},${Math.max(20, Math.min(H-20, d.y))})`
+    );
+  });
 }
 
 async function renderAnalytics() {
