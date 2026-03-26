@@ -713,6 +713,49 @@ async def get_project_detail(project_id: str):
 
 
 # ─────────────────────────────────────────────
+# THREADS (WĄTKI)
+# ─────────────────────────────────────────────
+
+@app.get("/api/threads")
+async def get_threads():
+    """Lista wątków z vault/WATKI/."""
+    try:
+        import sys as _sys
+        _sys.path.insert(0, str(Path.home() / "alfred" / "agents"))
+        from thread_tracker import load_open_threads, get_thread_detail
+    except ImportError:
+        return {"threads": []}
+
+    watki_dir = VAULT / "WATKI"
+    if not watki_dir.exists():
+        return {"threads": []}
+
+    threads = []
+    for f in sorted(watki_dir.glob("WATEK-*.md")):
+        detail = get_thread_detail(f.stem)
+        if detail:
+            threads.append(detail)
+
+    return {"threads": threads}
+
+
+@app.get("/api/threads/{thread_id}")
+async def get_thread(thread_id: str):
+    """Szczegóły wątku."""
+    try:
+        import sys as _sys
+        _sys.path.insert(0, str(Path.home() / "alfred" / "agents"))
+        from thread_tracker import get_thread_detail
+    except ImportError:
+        return JSONResponse(status_code=500, content={"error": "thread_tracker unavailable"})
+
+    detail = get_thread_detail(thread_id.upper())
+    if not detail:
+        return JSONResponse(status_code=404, content={"error": f"Thread {thread_id} not found"})
+    return detail
+
+
+# ─────────────────────────────────────────────
 # PROCESS GRAPH
 # ─────────────────────────────────────────────
 

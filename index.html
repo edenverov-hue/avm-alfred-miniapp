@@ -140,6 +140,7 @@ const CEO_TABS = [
   {id:"raci",     label:"RACI"},
   {id:"processes",label:"Procesy"},
   {id:"projects", label:"Projekty"},
+  {id:"threads",  label:"Watki"},
   {id:"analytics",label:"Analityka"},
   {id:"scribe",   label:"Transkrypcje"},
 ];
@@ -182,6 +183,7 @@ async function loadTab(id) {
     case "my_docs":     await renderMyDocs(); break;
     case "help":        renderHelp(); break;
     case "projects":   await renderProjects(); break;
+    case "threads":    await renderThreads(); break;
     case "processes":  await renderProcessGraph(); break;
     case "analytics":  await renderAnalytics(); break;
     case "scribe":     await renderScribe(); break;
@@ -653,6 +655,51 @@ async function renderScribe() {
       </div>
     </div>
   `;
+}
+
+async function renderThreads() {
+  const data = await api("/api/threads");
+  if (!data) return showError();
+  const threads = data.threads || [];
+  const c = document.getElementById("content");
+
+  if (!threads.length) {
+    c.innerHTML = `<p class="section-title">Watki</p>
+      <div class="card"><div style="color:var(--text-muted);text-align:center;padding:20px">
+        Brak watkow. Wyslij do bota: WATEK: [tytul]
+      </div></div>`;
+    return;
+  }
+
+  c.innerHTML = `
+    <p class="section-title">Watki (${threads.length})</p>
+    ${threads.map(t => `
+      <div class="card" style="margin-bottom:10px;cursor:pointer" onclick="toggleThreadHistory('${t.id}')">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="font-size:15px;font-weight:600">${t.id}: ${t.title}</div>
+          <span style="font-size:11px;padding:2px 8px;border-radius:10px;
+            background:${t.status==='open'?'var(--accent)':'var(--border)'};
+            color:${t.status==='open'?'#000':'var(--text-muted)'}">${t.status}</span>
+        </div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:4px">
+          Otwarto: ${t.opened} | Tagi: ${(t.tags||[]).join(', ')||'—'}
+        </div>
+        <div id="hist-${t.id}" style="display:none;margin-top:10px;border-top:1px solid var(--border);padding-top:8px">
+          ${(t.history||[]).length ? t.history.map(h => `
+            <div style="font-size:12px;padding:3px 0;border-bottom:1px solid var(--border)">
+              <span style="color:var(--accent)">${h.date}</span> — <b>${h.source}</b><br>
+              <span style="color:var(--text-muted)">${h.text}</span>
+            </div>
+          `).join('') : '<div style="font-size:12px;color:var(--text-muted)">Brak historii</div>'}
+        </div>
+      </div>
+    `).join("")}
+  `;
+}
+
+function toggleThreadHistory(id) {
+  const el = document.getElementById('hist-' + id);
+  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
 }
 
 async function renderProjects() {
