@@ -915,6 +915,249 @@ async def process_graph():
     return {"nodes": nodes, "links": PROCESS_LINKS}
 
 
+# ─────────────────────────────────────────────
+# THREAD HISTORY
+# ─────────────────────────────────────────────
+
+@app.get("/api/threads/{thread_id}/history")
+async def get_thread_history(thread_id: str):
+    """Pełna historia wątku z chronologią."""
+    try:
+        import sys as _sys
+        _sys.path.insert(0, str(Path.home() / "alfred" / "agents"))
+        from thread_tracker import get_thread_detail
+    except ImportError:
+        return JSONResponse(status_code=500, content={"error": "thread_tracker unavailable"})
+
+    detail = get_thread_detail(thread_id.upper())
+    if not detail:
+        return JSONResponse(status_code=404, content={"error": f"Thread {thread_id} not found"})
+
+    # Enrich with related tasks
+    tasks = get_tasks_combined()
+    related_tasks = [
+        t for t in tasks
+        if thread_id.upper() in (t.get("title", "") + t.get("id", "")).upper()
+    ]
+
+    return {
+        **detail,
+        "related_tasks": related_tasks,
+        "open_questions": detail.get("open_questions", []),
+        "history": detail.get("history", []),
+    }
+
+
+# ─────────────────────────────────────────────
+# SOP TASKS
+# ─────────────────────────────────────────────
+
+@app.get("/api/sop/{sop_id}/tasks")
+async def get_sop_tasks(sop_id: str):
+    """Zadania powiązane z danym SOP."""
+    sop_upper = sop_id.upper()
+    tasks = get_tasks_combined()
+
+    # Match by SOP reference in role or title
+    accountable_role = None
+    for sop, roles in RACI_MATRIX_RAW.items():
+        if sop == sop_upper:
+            for role, level in roles.items():
+                if level == "A":
+                    accountable_role = role
+                    break
+            break
+
+    sop_tasks = []
+    for t in tasks:
+        title = (t.get("title", "") + t.get("id", "")).upper()
+        owner_role = t.get("owner_role", "").upper()
+        if sop_upper in title or (accountable_role and owner_role == accountable_role):
+            sop_tasks.append(t)
+
+    return {"sop": sop_upper, "tasks": sop_tasks}
+
+
+# ─────────────────────────────────────────────
+# TASK APPROVE / REJECT
+# ─────────────────────────────────────────────
+
+@app.post("/api/tasks/{task_id}/approve")
+async def approve_task(task_id: str, request: Request):
+    """Zatwierdza zadanie — zmienia status na closed."""
+    body = {}
+    try:
+        body = await request.json()
+    except Exception:
+        pass
+
+    tasks_dir = VAULT / "ZADANIA"
+    if not tasks_dir.exists():
+        return JSONResponse(status_code=404, content={"error": "ZADANIA dir not found"})
+
+    for f in tasks_dir.glob("*.md"):
+        content = f.read_text(encoding="utf-8")
+        fm = parse_project_frontmatter(content)
+        if fm.get("task_id") == task_id or f.stem == task_id:
+            new_content = re.sub(
+                r'^status:\s*\S+', 'status: closed', content, count=1, flags=re.MULTILINE
+            )
+            today_str = date.today().isoformat()
+            if "date_closed:" not in new_content:
+                new_content = new_content.replace(
+                    "status: closed",
+                    f"status: closed\ndate_closed: {today_str}"
+                )
+            if body.get("reason"):
+                new_content += f"\n\n## CEO Decision\nApproved: {today_str}\nReason: {body['reason']}\n"
+            f.write_text(new_content, encoding="utf-8")
+            return {"ok": True, "task_id": task_id, "new_status": "closed"}
+
+    return JSONResponse(status_code=404, content={"error": f"Task {task_id} not found"})
+
+
+@app.post("/api/tasks/{task_id}/reject")
+async def reject_task(task_id: str, request: Request):
+    """Odrzuca zadanie — zmienia status na rejected."""
+    body = {}
+    try:
+        body = await request.json()
+    except Exception:
+        pass
+
+    tasks_dir = VAULT / "ZADANIA"
+    if not tasks_dir.exists():
+        return JSONResponse(status_code=404, content={"error": "ZADANIA dir not found"})
+
+    for f in tasks_dir.glob("*.md"):
+        content = f.read_text(encoding="utf-8")
+        fm = parse_project_frontmatter(content)
+        if fm.get("task_id") == task_id or f.stem == task_id:
+            new_content = re.sub(
+                r'^status:\s*\S+', 'status: rejected', content, count=1, flags=re.MULTILINE
+            )
+            today_str = date.today().isoformat()
+            if body.get("reason"):
+                new_content += f"\n\n## CEO Decision\nRejected: {today_str}\nReason: {body['reason']}\n"
+            f.write_text(new_content, encoding="utf-8")
+            return {"ok": True, "task_id": task_id, "new_status": "rejected"}
+
+    return JSONResponse(status_code=404, content={"error": f"Task {task_id} not found"})
+
+
+# ─────────────────────────────────────────────
+# ROLE ASSIGN
+# ─────────────────────────────────────────────
+
+@app.post("/api/roles/assign")
+async def assign_role(request: Request):
+    """Przypisuje osobę do roli."""
+    body = await request.json()
+    role = body.get("role", "").upper()
+    person = body.get("person", "")
+    chat_id = body.get("chat_id", "")
+
+    if not role or not person:
+        return JSONResponse(status_code=400, content={"error": "role and person required"})
+
+    config = load_config()
+    if role not in config.get("roles", {}):
+        return JSONResponse(status_code=404, content={"error": f"Role {role} not found"})
+
+    # Register worker if chat_id provided
+    if chat_id:
+        if chat_id not in config.get("workers", {}):
+            config.setdefault("workers", {})[chat_id] = {
+                "person": person,
+                "roles": [role],
+                "primary_role": role,
+                "registered": datetime.now().isoformat(),
+                "active": True,
+            }
+        else:
+            worker = config["workers"][chat_id]
+            if role not in worker.get("roles", []):
+                worker.setdefault("roles", []).append(role)
+            worker["person"] = person
+            worker["active"] = True
+
+        config["roles"][role]["primary_chat_id"] = chat_id
+
+    CONFIG_FILE.write_text(json.dumps(config, indent=2, ensure_ascii=False), encoding="utf-8")
+    return {"ok": True, "role": role, "person": person}
+
+
+# ─────────────────────────────────────────────
+# MEETINGS (for Kronika)
+# ─────────────────────────────────────────────
+
+@app.get("/api/meetings")
+async def get_meetings():
+    """Lista spotkań z vault/SPOTKANIA/."""
+    spotkania_dir = VAULT / "SPOTKANIA"
+    meetings = []
+    if not spotkania_dir.exists():
+        return {"meetings": []}
+
+    for f in sorted(spotkania_dir.glob("*.md"), reverse=True):
+        try:
+            content = f.read_text(encoding="utf-8")
+            fm = parse_project_frontmatter(content)
+            if fm.get("type") != "meeting":
+                continue
+
+            # Extract decisions and tasks from content
+            decisions = []
+            tasks_list = []
+            participants = []
+            in_decisions = False
+            in_tasks = False
+            in_participants = False
+
+            for line in content.splitlines():
+                if "## Decyzje" in line or "## Decisions" in line:
+                    in_decisions = True
+                    in_tasks = False
+                    in_participants = False
+                    continue
+                elif "## Zadania" in line or "## Tasks" in line:
+                    in_tasks = True
+                    in_decisions = False
+                    in_participants = False
+                    continue
+                elif "## Uczestnicy" in line or "## Participants" in line:
+                    in_participants = True
+                    in_decisions = False
+                    in_tasks = False
+                    continue
+                elif line.startswith("## "):
+                    in_decisions = in_tasks = in_participants = False
+                    continue
+
+                stripped = line.strip()
+                if in_decisions and stripped.startswith(("-", "*", "1", "2", "3", "4", "5")):
+                    decisions.append(re.sub(r'^[-*\d.)\s]+', '', stripped).strip())
+                elif in_tasks and stripped.startswith(("-", "*", "1", "2", "3", "4", "5")):
+                    tasks_list.append(re.sub(r'^[-*\d.)\s]+', '', stripped).strip())
+                elif in_participants and stripped.startswith(("-", "*")):
+                    participants.append(re.sub(r'^[-*\s]+', '', stripped).strip())
+
+            meetings.append({
+                "id": f.stem,
+                "title": fm.get("title", f.stem),
+                "date": fm.get("date", fm.get("date_created", "")),
+                "participants": participants[:10],
+                "decisions": decisions[:10],
+                "tasks": tasks_list[:10],
+                "decisions_count": int(fm.get("decisions", len(decisions))),
+                "tasks_count": int(fm.get("tasks", len(tasks_list))),
+            })
+        except Exception:
+            pass
+
+    return {"meetings": meetings[:20]}
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8765)

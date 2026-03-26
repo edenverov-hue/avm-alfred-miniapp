@@ -45,58 +45,6 @@ body{background:var(--bg);color:var(--text);font-family:'Source Sans 3',sans-ser
 .sec-title{font-family:'Playfair Display',serif;font-size:15px;font-weight:600;color:var(--navy);
   margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--sep)}
 
-/* Process Flow */
-.flow{display:flex;align-items:stretch;gap:0;overflow-x:auto;padding:8px 0 12px;-webkit-overflow-scrolling:touch}
-.flow-step{flex-shrink:0;width:90px;text-align:center;position:relative}
-.flow-box{background:var(--surface);border:1px solid var(--sep);border-radius:2px;padding:10px 6px;
-  min-height:72px;display:flex;flex-direction:column;align-items:center;justify-content:center}
-.flow-box.gate{border-left:3px solid var(--gold)}
-.flow-box.problem{border-color:var(--danger)}
-.flow-id{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text2);font-weight:500}
-.flow-name{font-size:11px;font-weight:600;color:var(--navy);margin:3px 0 2px}
-.flow-role{font-size:9px;color:var(--gold);font-weight:700;letter-spacing:0.5px}
-.flow-dot{width:6px;height:6px;border-radius:50%;margin-top:4px}
-.flow-arrow{position:absolute;right:-8px;top:50%;transform:translateY(-50%);
-  color:var(--sep);font-size:14px;z-index:1}
-
-/* Cards */
-.card{background:var(--surface);border-radius:2px;padding:14px 16px;margin-bottom:8px;
-  border-left:3px solid var(--sep);transition:background 0.15s}
-.card:active{background:var(--sep)}
-.card-d{border-left-color:var(--danger)}
-.card-w{border-left-color:var(--warn)}
-.card-g{border-left-color:var(--ok)}
-.card-n{border-left-color:var(--navy)}
-.card-gold{border-left-color:var(--gold)}
-.ct{font-size:14px;font-weight:600;color:var(--navy);line-height:1.3}
-.cm{font-size:11px;color:var(--text2);margin-top:3px}
-.cm .mono{font-size:11px}
-.cbtn-row{display:flex;gap:8px;margin-top:10px}
-.cbtn{flex:1;padding:10px;border-radius:2px;border:1px solid var(--sep);font-size:12px;
-  font-weight:700;cursor:pointer;text-align:center;transition:opacity 0.15s;
-  font-family:'Source Sans 3',sans-serif}
-.cbtn:active{opacity:0.6}
-.cbtn-ok{background:var(--ok);color:#fff;border-color:var(--ok)}
-.cbtn-no{background:#fff;color:var(--danger);border-color:var(--danger)}
-
-/* Org Tree */
-.tree{font-family:'JetBrains Mono',monospace;font-size:13px;line-height:2}
-.tree-line{display:flex;align-items:center;padding:2px 0}
-.tree-indent{color:var(--sep);white-space:pre}
-.tree-role{font-weight:700;color:var(--navy);min-width:80px;display:inline-block}
-.tree-dash{color:var(--sep);margin:0 6px}
-.tree-person{color:var(--text)}
-.tree-empty{color:var(--text2);font-style:italic}
-.tree-dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:6px}
-
-/* Kronika */
-.kron-row{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--sep)}
-.kron-date{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--navy-l);
-  min-width:60px;flex-shrink:0;padding-top:2px}
-.kron-body{flex:1}
-.kron-title{font-size:13px;font-weight:600;color:var(--navy)}
-.kron-meta{font-size:11px;color:var(--text2);margin-top:2px}
-
 /* Badges */
 .badge-sm{font-size:10px;font-weight:700;padding:2px 8px;border-radius:2px;display:inline-block}
 .badge-navy{background:var(--navy);color:#fff}
@@ -105,9 +53,198 @@ body{background:var(--bg);color:var(--text);font-family:'Source Sans 3',sans-ser
 .badge-warn{background:#FFF3E0;color:var(--warn)}
 .badge-danger{background:#FFEBEE;color:var(--danger)}
 
+/* Avatar initials */
+.avatar{width:32px;height:32px;border-radius:50%;background:var(--navy);color:#fff;
+  display:inline-flex;align-items:center;justify-content:center;
+  font-family:'Source Sans 3',sans-serif;font-size:13px;font-weight:700;
+  flex-shrink:0;cursor:default;position:relative}
+.avatar-sm{width:24px;height:24px;font-size:10px}
+.avatar[title]:hover::after{content:attr(title);position:absolute;top:-28px;left:50%;
+  transform:translateX(-50%);background:var(--navy);color:#fff;font-size:10px;
+  padding:2px 8px;border-radius:2px;white-space:nowrap;pointer-events:none;z-index:10}
+
+/* Status dot */
+.sdot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0}
+.sdot-ok{background:var(--ok)}
+.sdot-warn{background:var(--warn)}
+.sdot-danger{background:var(--danger)}
+.sdot-grey{background:var(--sep)}
+.sdot-pulse{animation:pulse 2s ease infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(15,123,85,0.4)}50%{box-shadow:0 0 0 4px rgba(15,123,85,0)}}
+.sdot-danger.sdot-pulse{animation:pulse-d 2s ease infinite}
+@keyframes pulse-d{0%,100%{box-shadow:0 0 0 0 rgba(181,28,28,0.4)}50%{box-shadow:0 0 0 4px rgba(181,28,28,0)}}
+
+/* Skeleton shimmer */
+.skel{background:linear-gradient(90deg,var(--sep) 25%,#f0f2f7 50%,var(--sep) 75%);
+  background-size:200% 100%;border-radius:2px;animation:shimmer 1.5s ease infinite}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* Toast */
+.toast-container{position:fixed;bottom:80px;right:16px;z-index:200;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{background:var(--navy);color:#fff;font-family:'Source Sans 3',sans-serif;font-size:13px;
+  padding:10px 16px;border-radius:4px;opacity:0;transform:translateX(40px);
+  transition:all 0.3s ease;pointer-events:auto;max-width:280px;border-left:3px solid var(--gold)}
+.toast.show{opacity:1;transform:translateX(0)}
+.toast.error{border-left-color:var(--danger)}
+
+/* ═══ MAPA — SOP Flow ══════════════════════ */
+.flow{display:flex;flex-direction:column;gap:0;padding:8px 0}
+.flow-row{display:flex;align-items:stretch;gap:0}
+.flow-node{flex:1;min-width:0;position:relative;cursor:pointer}
+.flow-card{background:var(--surface);border:1px solid var(--sep);border-radius:4px;
+  padding:10px 8px;min-height:68px;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;position:relative;transition:all 0.2s}
+.flow-card.gate{border-left:3px solid var(--gold)}
+.flow-card.problem{border-color:var(--danger)}
+.flow-card:active{background:var(--sep)}
+.flow-id{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text2);font-weight:500}
+.flow-name{font-family:'Playfair Display',serif;font-size:13px;font-weight:600;color:var(--navy);
+  margin:2px 0;text-align:center;line-height:1.2}
+.flow-role-badge{font-size:9px;font-weight:700;padding:1px 6px;border-radius:2px;
+  background:var(--navy);color:#fff;letter-spacing:0.3px}
+.flow-sdot{position:absolute;top:6px;right:6px}
+
+/* Flow arrow with label */
+.flow-arrow-row{display:flex;align-items:center;padding:4px 0;gap:0}
+.flow-arrow-line{flex:1;display:flex;align-items:center;justify-content:center;position:relative}
+.flow-arrow-line::before{content:'';display:block;width:1px;height:20px;background:var(--sep)}
+.flow-arrow-label{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text2);
+  text-align:center;padding:0 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+
+/* Flow expand (Layer 2) */
+.flow-expand{max-height:0;overflow:hidden;transition:max-height 0.3s ease;
+  background:var(--bg);border:1px solid var(--sep);border-top:none;border-radius:0 0 4px 4px;
+  margin-top:-1px}
+.flow-expand.open{max-height:400px}
+.flow-expand-inner{padding:10px 12px;font-size:12px}
+.flow-expand .raci-line{display:flex;justify-content:space-between;padding:2px 0;
+  color:var(--text2);font-size:11px}
+.flow-expand .raci-line span:first-child{font-weight:600;color:var(--navy)}
+.flow-checklist{margin:6px 0;padding:4px 0;border-top:1px solid var(--sep)}
+.flow-checklist-item{font-size:11px;color:var(--text2);padding:1px 0}
+.flow-gate-btn{display:inline-block;margin-top:6px;padding:4px 10px;font-size:10px;
+  font-weight:700;border:1px solid var(--gold);color:var(--gold);border-radius:2px;
+  cursor:pointer;background:none}
+.flow-gate-btn:active{background:var(--gold);color:#fff}
+.flow-last-activity{font-size:10px;color:var(--text2);margin-top:6px;font-style:italic}
+
+/* Flow Layer 3 — tasks */
+.flow-tasks{max-height:0;overflow:hidden;transition:max-height 0.3s ease;
+  border:1px solid var(--sep);border-top:none;border-radius:0 0 4px 4px;margin-top:-1px}
+.flow-tasks.open{max-height:600px}
+.flow-tasks-inner{padding:10px 12px}
+.flow-task-item{display:flex;align-items:center;gap:8px;padding:4px 0;
+  border-bottom:1px solid var(--sep);font-size:11px}
+.flow-task-item:last-child{border-bottom:none}
+
+/* ═══ ORG — Tree + Panel ══════════════════ */
+.tree{font-family:'JetBrains Mono',monospace;font-size:13px;line-height:2}
+.tree-line{display:flex;align-items:center;padding:2px 0;cursor:pointer;border-radius:2px;
+  transition:background 0.15s;padding:4px 6px;margin:0 -6px}
+.tree-line:active{background:var(--sep)}
+.tree-indent{color:var(--sep);white-space:pre}
+.tree-role{font-weight:700;color:var(--navy);min-width:80px;display:inline-block}
+.tree-dash{color:var(--sep);margin:0 6px}
+.tree-person{color:var(--text)}
+.tree-empty{color:var(--text2);font-style:italic}
+
+/* Slide panel */
+.panel-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(27,43,75,0.3);
+  z-index:150;opacity:0;pointer-events:none;transition:opacity 0.3s}
+.panel-overlay.open{opacity:1;pointer-events:auto}
+.panel{position:fixed;top:0;right:-320px;bottom:0;width:min(320px,85vw);background:#fff;
+  z-index:151;transition:right 0.3s ease;overflow-y:auto;box-shadow:-4px 0 20px rgba(0,0,0,0.1)}
+.panel.open{right:0}
+.panel-close{position:absolute;top:12px;right:12px;width:32px;height:32px;border:none;
+  background:var(--surface);border-radius:50%;cursor:pointer;font-size:16px;
+  display:flex;align-items:center;justify-content:center;color:var(--text2)}
+.panel-header{padding:24px 20px 16px}
+.panel-header h2{font-family:'Playfair Display',serif;font-size:20px;color:var(--navy);font-weight:700}
+.panel-person{font-size:14px;color:var(--text);margin-top:4px}
+.panel-person.empty{font-style:italic;color:var(--text2)}
+.panel-sep{height:1px;background:var(--gold);margin:0 20px;opacity:0.5}
+.panel-section{padding:16px 20px}
+.panel-section h3{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;
+  color:var(--text2);margin-bottom:8px}
+.panel-sop-link{display:block;padding:4px 0;font-size:13px;color:var(--navy);cursor:pointer;
+  text-decoration:none}
+.panel-sop-link:active{color:var(--gold)}
+.panel-task{display:flex;justify-content:space-between;align-items:center;padding:4px 0;
+  font-size:12px;border-bottom:1px solid var(--sep)}
+.panel-task:last-child{border-bottom:none}
+.panel-assign-btn{display:block;width:100%;padding:10px;margin-top:8px;
+  background:var(--navy);color:#fff;border:none;border-radius:2px;font-size:13px;
+  font-weight:700;cursor:pointer;font-family:'Source Sans 3',sans-serif}
+.panel-assign-btn:active{opacity:0.7}
+.panel-assign-form{margin-top:12px;display:flex;flex-direction:column;gap:8px}
+.panel-assign-form input{padding:8px 10px;border:1px solid var(--sep);border-radius:2px;
+  font-size:13px;font-family:'Source Sans 3',sans-serif}
+
+/* ═══ KRONIKA ═══════════════════════════════ */
+.accordion{border:1px solid var(--sep);border-radius:4px;margin-bottom:8px;overflow:hidden}
+.accordion-head{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;
+  background:var(--surface);transition:background 0.15s}
+.accordion-head:active{background:var(--sep)}
+.accordion-chevron{font-size:12px;color:var(--text2);transition:transform 0.2s;margin-left:auto}
+.accordion.open .accordion-chevron{transform:rotate(90deg)}
+.accordion-body{max-height:0;overflow:hidden;transition:max-height 0.3s ease}
+.accordion.open .accordion-body{max-height:2000px}
+.accordion-inner{padding:12px 14px;border-top:1px solid var(--sep)}
+
+/* Thread card */
+.thread-head-info{flex:1;min-width:0}
+.thread-id{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text2)}
+.thread-title{font-family:'Playfair Display',serif;font-size:14px;font-weight:600;color:var(--navy);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.thread-meta{font-size:11px;color:var(--text2);margin-top:2px}
+.progress-bar{width:100%;height:4px;background:var(--sep);border-radius:2px;margin:8px 0 4px;overflow:hidden}
+.progress-fill{height:100%;background:var(--ok);border-radius:2px;transition:width 0.3s}
+.progress-label{font-size:10px;color:var(--text2)}
+.history-entry{display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--sep);font-size:11px}
+.history-entry:last-child{border-bottom:none}
+.history-date{font-family:'JetBrains Mono',monospace;color:var(--navy-l);min-width:50px;flex-shrink:0}
+.history-source{color:var(--gold);font-weight:600;min-width:60px;flex-shrink:0}
+.history-text{color:var(--text)}
+.thread-close-btn{display:block;width:100%;margin-top:12px;padding:8px;border:1px solid var(--danger);
+  color:var(--danger);background:none;border-radius:2px;font-size:12px;font-weight:700;
+  cursor:pointer;font-family:'Source Sans 3',sans-serif}
+.thread-close-btn:active{background:var(--danger);color:#fff}
+
+/* Meeting card */
+.meeting-head-info{flex:1;min-width:0}
+.meeting-date{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--navy-l)}
+.meeting-title{font-family:'Playfair Display',serif;font-size:14px;font-weight:600;color:var(--navy)}
+.meeting-avatars{display:flex;gap:-4px;margin:6px 0 4px}
+.meeting-avatars .avatar-sm{margin-right:-4px;border:2px solid #fff}
+.meeting-badges{display:flex;gap:8px;margin-top:4px}
+.meeting-list{margin-top:8px}
+.meeting-list-title{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;
+  letter-spacing:0.5px;margin-bottom:4px}
+.meeting-list ol,.meeting-list ul{padding-left:16px;font-size:12px;color:var(--text)}
+.meeting-list li{padding:2px 0}
+
+/* ═══ DECYZJE ══════════════════════════════ */
+.dec-card{background:var(--surface);border-radius:4px;padding:14px 16px;margin-bottom:10px;
+  border-left:3px solid var(--navy);position:relative;transition:all 0.4s ease}
+.dec-card.slide-out{transform:translateX(-120%);opacity:0}
+.dec-type{position:absolute;top:8px;left:12px}
+.dec-header{display:flex;justify-content:space-between;align-items:start;margin-bottom:4px;padding-top:4px}
+.dec-title{font-size:16px;font-weight:700;color:var(--navy);line-height:1.3;margin-top:20px}
+.dec-context{font-size:11px;color:var(--text2);margin-top:4px}
+.dec-wait{font-size:11px;margin-top:4px}
+.dec-wait.overdue{color:var(--danger);font-weight:600}
+.dec-owner{display:flex;align-items:center;gap:8px;margin-top:8px}
+.dec-owner-text{font-size:12px;color:var(--text)}
+.dec-actions{display:flex;gap:8px;margin-top:12px}
+.dec-btn{flex:1;padding:10px;border-radius:2px;font-size:13px;font-weight:700;cursor:pointer;
+  text-align:center;transition:all 0.15s;font-family:'Source Sans 3',sans-serif;border:none}
+.dec-btn:active{opacity:0.6}
+.dec-btn-ok{background:var(--navy);color:#fff}
+.dec-btn-no{background:#fff;color:var(--navy);border:1px solid var(--navy)}
+.dec-btn-detail{background:none;color:var(--navy);font-size:12px;text-decoration:underline;
+  border:none;cursor:pointer;padding:6px 0;font-family:'Source Sans 3',sans-serif}
+
 .empty{text-align:center;padding:32px 16px;color:var(--text2);font-size:13px}
-.skel{background:var(--sep);border-radius:2px;animation:sk 1.5s ease infinite}
-@keyframes sk{0%,100%{opacity:.3}50%{opacity:.6}}
   </style>
 </head>
 <body>
@@ -118,9 +255,21 @@ body{background:var(--bg);color:var(--text);font-family:'Source Sans 3',sans-ser
 </div>
 
 <div class="cnt" id="cnt">
-  <div style="padding:32px 0"><div class="skel" style="width:70%;height:16px;margin:0 auto 12px"></div>
-  <div class="skel" style="width:90%;height:50px;margin:0 auto 8px"></div>
-  <div class="skel" style="width:90%;height:50px;margin:0 auto"></div></div>
+  <div style="padding:32px 0">
+    <div class="skel" style="width:70%;height:16px;margin:0 auto 12px"></div>
+    <div class="skel" style="width:90%;height:50px;margin:0 auto 8px"></div>
+    <div class="skel" style="width:90%;height:50px;margin:0 auto"></div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- Slide panel -->
+<div class="panel-overlay" id="panel-overlay" onclick="closePanel()"></div>
+<div class="panel" id="panel">
+  <button class="panel-close" onclick="closePanel()">&times;</button>
+  <div id="panel-content"></div>
 </div>
 
 <nav class="bnav" id="bnav">
@@ -138,10 +287,67 @@ if(tg){tg.ready();tg.expand();tg.setHeaderColor('#ffffff');tg.setBackgroundColor
 const uid = tg?.initDataUnsafe?.user?.id?.toString()||"unknown";
 const isCeo = uid===CEO_ID;
 
-async function api(ep){
-  try{const r=await fetch(API+ep,{headers:{"X-Chat-Id":uid}});if(!r.ok)throw r.status;return await r.json()}
-  catch(e){console.error(e);return null}
+async function api(ep, opts){
+  try{
+    const r=await fetch(API+ep,{...opts, headers:{"X-Chat-Id":uid,"Content-Type":"application/json",...(opts?.headers||{})}});
+    if(!r.ok)throw r.status;
+    return await r.json();
+  }catch(e){console.error(e);return null}
 }
+
+// ═══ HELPERS ═══════════════════════════════
+
+function initials(name){
+  if(!name)return "?";
+  const parts=name.trim().split(/\s+/);
+  return parts.length>=2 ? (parts[0][0]+parts[1][0]).toUpperCase() : name.slice(0,2).toUpperCase();
+}
+
+function avatarHtml(name, cls=""){
+  return `<div class="avatar ${cls}" title="${name||'?'}">${initials(name)}</div>`;
+}
+
+function statusDot(status, active){
+  const cls = status==="critical"||status==="danger" ? "sdot-danger sdot-pulse"
+    : status==="warn" ? "sdot-warn"
+    : active||status==="ok"||status==="active" ? "sdot-ok sdot-pulse"
+    : "sdot-grey";
+  return `<span class="sdot ${cls}"></span>`;
+}
+
+function daysAgo(dateStr){
+  if(!dateStr)return "";
+  const d=new Date(dateStr);
+  const diff=Math.floor((Date.now()-d.getTime())/864e5);
+  if(diff===0)return "dzisiaj";
+  if(diff===1)return "wczoraj";
+  return `${diff} dni temu`;
+}
+
+function daysSince(dateStr){
+  if(!dateStr)return 0;
+  return Math.floor((Date.now()-new Date(dateStr).getTime())/864e5);
+}
+
+function showToast(msg, type="success"){
+  const c=document.getElementById("toast-container");
+  const t=document.createElement("div");
+  t.className=`toast ${type==="error"?"error":""}`;
+  t.textContent=msg;
+  c.appendChild(t);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>t.classList.add("show")));
+  setTimeout(()=>{t.classList.remove("show");setTimeout(()=>t.remove(),300)},3000);
+}
+
+function showSkeleton(){
+  document.getElementById("cnt").innerHTML=`<div style="padding:32px 0">
+    <div class="skel" style="width:60%;height:14px;margin:8px auto"></div>
+    <div class="skel" style="width:90%;height:48px;margin:8px auto"></div>
+    <div class="skel" style="width:90%;height:48px;margin:8px auto"></div>
+    <div class="skel" style="width:70%;height:48px;margin:8px auto"></div></div>`;
+}
+
+// ═══ NAVIGATION ═══════════════════════════
 
 function go(id,btn){
   document.querySelectorAll(".bnav button").forEach(b=>b.classList.remove("on"));
@@ -150,18 +356,31 @@ function go(id,btn){
 }
 
 async function render(id){
-  const c=document.getElementById("cnt");
-  c.innerHTML='<div style="padding:32px 0"><div class="skel" style="width:80%;height:50px;margin:8px auto"></div><div class="skel" style="width:80%;height:50px;margin:8px auto"></div></div>';
+  showSkeleton();
   switch(id){
     case"map":await rMap();break;
     case"org":await rOrg();break;
     case"kronika":await rKronika();break;
     case"decyzje":await rDecyzje();break;
   }
-  document.getElementById("hdr-time").textContent=new Date().toLocaleTimeString("pl",{hour:"2-digit",minute:"2-digit"})+" · "+new Date().toLocaleDateString("pl",{day:"numeric",month:"short"});
+  document.getElementById("hdr-time").textContent=
+    new Date().toLocaleTimeString("pl",{hour:"2-digit",minute:"2-digit"})+" · "+
+    new Date().toLocaleDateString("pl",{day:"numeric",month:"short"});
 }
 
-// ═══ MAPA ═══════════════════════════════════════════════
+// ═══ PANEL ═══════════════════════════════
+
+function openPanel(html){
+  document.getElementById("panel-content").innerHTML=html;
+  document.getElementById("panel-overlay").classList.add("open");
+  document.getElementById("panel").classList.add("open");
+}
+function closePanel(){
+  document.getElementById("panel-overlay").classList.remove("open");
+  document.getElementById("panel").classList.remove("open");
+}
+
+// ═══ MAPA ═══════════════════════════════
 
 const FLOW=[
   {id:"SOP-01",name:"Sprzedaz",role:"KVP",gate:false},
@@ -171,6 +390,31 @@ const FLOW=[
   {id:"SOP-09",name:"Zamkniecie",role:"FIN",gate:true},
 ];
 
+const ARROW_LABELS={
+  "SOP-01→SOP-04":"umowa + karta klienta",
+  "SOP-04→SOP-05":"karta przekazania",
+  "SOP-05→SOP-06":"harmonogram + materialy",
+  "SOP-06→SOP-09":"protokol odbioru",
+};
+
+const RACI_MATRIX={
+  "SOP-01":{"KVP":"A","HUNTER":"R","FARMER":"R","AM":"I","CEO":"I"},
+  "SOP-02":{"AM":"A","KVP":"C","PM":"I"},
+  "SOP-03":{"PM":"A","TECH":"C","FOREMAN":"C","AM":"I","FIN":"C"},
+  "SOP-04":{"PM":"A","KVP":"C","AM":"I"},
+  "SOP-05":{"PM":"A","TECH":"R","FOREMAN":"C","FIN":"C"},
+  "SOP-06":{"FOREMAN":"A","BRIGADE":"R","PM":"I"},
+  "SOP-07":{"PM":"A","FOREMAN":"R","FIN":"I"},
+  "SOP-08":{"SERVICE":"A","AM":"R","PM":"I"},
+  "SOP-09":{"FIN":"A","PM":"R"},
+  "SOP-10":{"FIN":"A","PM":"C"},
+  "SOP-11":{"PM":"A","AM":"R"},
+};
+
+// Store expanded states
+let expandedSops={};
+let sopTasksCache={};
+
 async function rMap(){
   const [dash,threads]=await Promise.all([api("/api/dashboard"),api("/api/threads")]);
   if(!dash){document.getElementById("cnt").innerHTML='<div class="empty">Brak polaczenia</div>';return}
@@ -178,81 +422,119 @@ async function rMap(){
   const tasks=dash.tasks||[];
   const today=new Date().toISOString().slice(0,10);
   const active=tasks.filter(t=>t.status!=="closed"&&t.status!=="cancelled");
-  const openT=(threads?.threads||[]).filter(t=>t.status==="open");
 
-  // Flow
-  let flowH='<div class="sec"><div class="sec-title">Procesy AVM</div><div class="flow">';
+  let h='<div class="sec"><div class="sec-title">Procesy AVM</div><div class="flow">';
+
   FLOW.forEach((s,i)=>{
     const hasProblem=active.some(t=>(t.owner_role||"").includes(s.role)&&t.priority==="H");
-    flowH+=`<div class="flow-step">
-      <div class="flow-box ${s.gate?'gate':''} ${hasProblem?'problem':''}">
+    const overdue=active.some(t=>(t.owner_role||"").includes(s.role)&&t.deadline&&t.deadline<today);
+    const status=overdue?"danger":hasProblem?"warn":"ok";
+    const raci=RACI_MATRIX[s.id]||{};
+    const raciStr=Object.entries(raci).map(([r,l])=>`${l}: ${r}`).join(" | ");
+    const sopTasks=active.filter(t=>(t.owner_role||"").includes(s.role));
+    const isExpanded=expandedSops[s.id];
+
+    h+=`<div class="flow-node" id="flow-${s.id}">
+      <div class="flow-card ${s.gate?'gate':''} ${overdue?'problem':''}" onclick="toggleSop('${s.id}')">
+        <span class="flow-sdot">${statusDot(status,!hasProblem&&!overdue)}</span>
         <div class="flow-id mono">${s.id}</div>
         <div class="flow-name">${s.name}</div>
-        <div class="flow-role">${s.role}</div>
-        <div class="flow-dot" style="background:${hasProblem?'var(--danger)':'var(--ok)'}"></div>
+        <span class="flow-role-badge">${s.role}</span>
       </div>
-      ${i<FLOW.length-1?'<div class="flow-arrow">&rarr;</div>':''}
+      <div class="flow-expand ${isExpanded?'open':''}" id="expand-${s.id}">
+        <div class="flow-expand-inner">
+          <div class="raci-line"><span>RACI:</span></div>
+          ${Object.entries(raci).map(([r,l])=>`<div class="raci-line"><span>${l}</span><span>${r}</span></div>`).join('')}
+          <div class="flow-checklist">
+            <div class="flow-checklist-item">Zadan: ${sopTasks.length} otwartych</div>
+            <div class="flow-checklist-item">Priorytet H: ${sopTasks.filter(t=>t.priority==="H").length}</div>
+          </div>
+          ${s.gate?'<button class="flow-gate-btn" onclick="event.stopPropagation()">Otworz GATE</button>':''}
+          <div class="flow-last-activity">${sopTasks.length?daysAgo(sopTasks[0].deadline):'brak aktywnosci'}</div>
+        </div>
+      </div>
+      <div class="flow-tasks ${expandedSops[s.id]==='tasks'?'open':''}" id="tasks-${s.id}"></div>
     </div>`;
-  });
-  flowH+='</div></div>';
 
-  // Aktywne sprawy
-  let spH='<div class="sec"><div class="sec-title">Aktywne sprawy</div>';
-  if(!active.length&&!openT.length){spH+='<div class="empty">Brak aktywnych spraw</div>'}
-
-  // Overdue first
-  const overdue=active.filter(t=>t.deadline&&t.deadline<today);
-  overdue.forEach(t=>{
-    const days=Math.ceil((new Date()-new Date(t.deadline))/864e5);
-    spH+=`<div class="card card-d"><div class="ct">${(t.title||'').slice(0,50)}</div>
-      <div class="cm">${t.owner_role||''} &middot; <span class="mono badge-sm badge-danger">+${days}d</span></div></div>`;
-  });
-
-  // High priority
-  active.filter(t=>t.priority==="H"&&!overdue.includes(t)).forEach(t=>{
-    spH+=`<div class="card card-w"><div class="ct">${(t.title||'').slice(0,50)}</div>
-      <div class="cm">${t.owner_role||''} &middot; <span class="mono">${t.deadline||''}</span> &middot; <span class="badge-sm badge-warn">H</span></div></div>`;
+    // Arrow with label
+    if(i<FLOW.length-1){
+      const key=`${s.id}\u2192${FLOW[i+1].id}`;
+      const label=ARROW_LABELS[key]||"";
+      h+=`<div class="flow-arrow-row">
+        <div class="flow-arrow-line"></div>
+      </div>
+      ${label?`<div style="text-align:center"><span class="flow-arrow-label">${label}</span></div>`:''}
+      <div class="flow-arrow-row">
+        <div class="flow-arrow-line"></div>
+      </div>`;
+    }
   });
 
-  // Pending verification
-  active.filter(t=>t.status==="pending_verification").forEach(t=>{
-    spH+=`<div class="card card-gold"><div class="ct">${(t.title||'').slice(0,50)}</div>
-      <div class="cm">${t.owner_role||t.owner_person||''} &middot; Do weryfikacji</div></div>`;
-  });
-
-  // Threads
-  openT.forEach(t=>{
-    spH+=`<div class="card card-n"><div class="ct">${t.id}: ${t.title}</div>
-      <div class="cm">od <span class="mono">${t.opened}</span> &middot; ${(t.tags||[]).slice(0,3).join(', ')}</div></div>`;
-  });
-
-  spH+='</div>';
+  h+='</div></div>';
 
   // Update decision badge
-  const pendingCount=active.filter(t=>t.status==="pending_verification").length+overdue.length;
+  const pendingCount=active.filter(t=>t.status==="pending_verification").length+
+    active.filter(t=>t.deadline&&t.deadline<today).length;
   const b=document.getElementById("dec-badge");
   if(pendingCount>0){b.textContent=pendingCount;b.style.display=""}else{b.style.display="none"}
 
-  document.getElementById("cnt").innerHTML=flowH+spH;
+  document.getElementById("cnt").innerHTML=h;
 }
 
-// ═══ ORGANIZACJA ════════════════════════════════════════
+function toggleSop(sopId){
+  const el=document.getElementById("expand-"+sopId);
+  if(el.classList.contains("open")){
+    el.classList.remove("open");
+    delete expandedSops[sopId];
+  } else {
+    el.classList.add("open");
+    expandedSops[sopId]=true;
+  }
+}
+
+async function loadSopTasks(sopId){
+  const data=await api(`/api/sop/${sopId}/tasks`);
+  if(!data)return;
+  const el=document.getElementById("tasks-"+sopId);
+  let h='<div class="flow-tasks-inner">';
+  if(!data.tasks.length){h+='<div style="font-size:11px;color:var(--text2)">Brak zadan</div>'}
+  data.tasks.forEach(t=>{
+    const st=t.status==="closed"?"sdot-ok":t.deadline&&t.deadline<new Date().toISOString().slice(0,10)?"sdot-danger":"sdot-warn";
+    h+=`<div class="flow-task-item">
+      <span class="sdot ${st}"></span>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.title||''}</span>
+      <span class="mono" style="font-size:10px;color:var(--text2)">${t.deadline||''}</span>
+    </div>`;
+  });
+  h+='</div>';
+  el.innerHTML=h;
+  el.classList.toggle("open");
+  expandedSops[sopId]=el.classList.contains("open")?"tasks":true;
+}
+
+// ═══ ORGANIZACJA ═══════════════════════════
 
 const TREE=[
-  {role:"CEO",indent:"",person:null,dot:"ok"},
-  {role:"KVP",indent:"  \u251C\u2500 ",person:null,dot:"empty"},
-  {role:"HUNTER",indent:"  \u2502   \u251C\u2500 ",person:null,dot:"empty"},
-  {role:"FARMER",indent:"  \u2502   \u2514\u2500 ",person:null,dot:"empty"},
-  {role:"AM",indent:"  \u2502   ",person:null,dot:"empty"},
-  {role:"PM",indent:"  \u251C\u2500 ",person:null,dot:"empty"},
-  {role:"TECH",indent:"  \u2502   \u251C\u2500 ",person:null,dot:"empty"},
-  {role:"FOREMAN",indent:"  \u2502   \u251C\u2500 ",person:null,dot:"empty"},
-  {role:"SERVICE",indent:"  \u2502   \u2514\u2500 ",person:null,dot:"empty"},
-  {role:"FIN",indent:"  \u2514\u2500 ",person:null,dot:"empty"},
+  {role:"CEO",indent:"",person:null},
+  {role:"KVP",indent:"  \u251C\u2500 ",person:null},
+  {role:"HUNTER",indent:"  \u2502   \u251C\u2500 ",person:null},
+  {role:"FARMER",indent:"  \u2502   \u2514\u2500 ",person:null},
+  {role:"AM",indent:"  \u2502   ",person:null},
+  {role:"PM",indent:"  \u251C\u2500 ",person:null},
+  {role:"TECH",indent:"  \u2502   \u251C\u2500 ",person:null},
+  {role:"FOREMAN",indent:"  \u2502   \u251C\u2500 ",person:null},
+  {role:"SERVICE",indent:"  \u2502   \u2514\u2500 ",person:null},
+  {role:"FIN",indent:"  \u2514\u2500 ",person:null},
 ];
 
+let orgData=null;
+let orgTasks=null;
+
 async function rOrg(){
-  const data=await api("/api/org");
+  const [data,dash,docs]=await Promise.all([api("/api/org"),api("/api/dashboard"),api("/api/documents/ALL")]);
+  orgData=data;
+  orgTasks=(dash?.tasks||[]).filter(t=>t.status!=="closed"&&t.status!=="cancelled");
+
   if(!data){document.getElementById("cnt").innerHTML='<div class="empty">Brak danych</div>';return}
   const roles=data.roles||{};
 
@@ -261,13 +543,15 @@ async function rOrg(){
     const r=roles[t.role]||{};
     const person=r.person;
     const active=r.active;
-    const dotColor=active?"var(--ok)":person?"var(--warn)":"var(--sep)";
-    h+=`<div class="tree-line">
+    const dotStatus=active?"ok":person?"warn":"grey";
+
+    h+=`<div class="tree-line" onclick="openRolePanel('${t.role}')">
       <span class="tree-indent">${t.indent}</span>
-      <span class="tree-dot" style="background:${dotColor}"></span>
-      <span class="tree-role">${t.role}</span>
+      ${statusDot(dotStatus,active)}
+      <span class="tree-role" style="margin-left:6px">${t.role}</span>
       <span class="tree-dash">&mdash;</span>
-      ${person?`<span class="tree-person">${person}</span>`:'<span class="tree-empty">nieobsadzony</span>'}
+      ${person?`${avatarHtml(person,'avatar-sm')}<span class="tree-person" style="margin-left:6px">${person}</span>`
+        :'<span class="tree-empty">nieobsadzony</span>'}
     </div>`;
   });
   h+='</div></div>';
@@ -275,86 +559,233 @@ async function rOrg(){
   document.getElementById("cnt").innerHTML=h;
 }
 
-// ═══ KRONIKA ════════════════════════════════════════════
+function openRolePanel(role){
+  if(!orgData)return;
+  const r=orgData.roles[role]||{};
+  const person=r.person;
+  const raci=RACI_MATRIX;
+
+  // SOPs where A
+  const aSops=Object.entries(raci).filter(([_,roles])=>roles[role]==="A").map(([sop])=>sop);
+  // SOPs where R
+  const rSops=Object.entries(raci).filter(([_,roles])=>roles[role]==="R").map(([sop])=>sop);
+  // Active tasks
+  const roleTasks=(orgTasks||[]).filter(t=>(t.owner_role||"").includes(role));
+
+  let h=`<div class="panel-header">
+    <h2>${role}</h2>
+    ${person?`<div class="panel-person">${person}</div>`:'<div class="panel-person empty">Nieobsadzone</div>'}
+  </div>
+  <div class="panel-sep"></div>`;
+
+  // ODPOWIADA ZA (A)
+  if(aSops.length){
+    h+=`<div class="panel-section"><h3>Odpowiada za (A)</h3>`;
+    aSops.forEach(sop=>{
+      const f=FLOW.find(f=>f.id===sop);
+      h+=`<div class="panel-sop-link" onclick="closePanel();go('map');setTimeout(()=>toggleSop('${sop}'),300)">${sop} ${f?'— '+f.name:''}</div>`;
+    });
+    h+=`</div>`;
+  }
+
+  // WYKONUJE (R)
+  if(rSops.length){
+    h+=`<div class="panel-section"><h3>Wykonuje (R)</h3>`;
+    rSops.forEach(sop=>{
+      const f=FLOW.find(f=>f.id===sop);
+      h+=`<div class="panel-sop-link">${sop} ${f?'— '+f.name:''}</div>`;
+    });
+    h+=`</div>`;
+  }
+
+  // ZADANIA AKTYWNE
+  h+=`<div class="panel-section"><h3>Zadania aktywne (${roleTasks.length})</h3>`;
+  if(!roleTasks.length){h+='<div style="font-size:12px;color:var(--text2)">Brak</div>'}
+  roleTasks.slice(0,8).forEach(t=>{
+    h+=`<div class="panel-task">
+      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(t.title||'').slice(0,35)}</span>
+      <span class="mono" style="font-size:10px">${t.deadline||''}</span>
+    </div>`;
+  });
+  h+=`</div>`;
+
+  // Assign button for unassigned
+  if(!person && isCeo){
+    h+=`<div class="panel-section">
+      <button class="panel-assign-btn" onclick="showAssignForm('${role}',this)">Przypisz role</button>
+      <div id="assign-form-${role}"></div>
+    </div>`;
+  }
+
+  openPanel(h);
+}
+
+function showAssignForm(role, btn){
+  btn.style.display="none";
+  document.getElementById("assign-form-"+role).innerHTML=`
+    <div class="panel-assign-form">
+      <input type="text" id="assign-name-${role}" placeholder="Imie i nazwisko">
+      <input type="text" id="assign-chatid-${role}" placeholder="Chat ID (opcjonalnie)">
+      <button class="panel-assign-btn" onclick="submitAssign('${role}')">Zapisz</button>
+    </div>`;
+}
+
+async function submitAssign(role){
+  const person=document.getElementById("assign-name-"+role).value.trim();
+  const chatId=document.getElementById("assign-chatid-"+role).value.trim();
+  if(!person){showToast("Wpisz imie","error");return}
+  const res=await api("/api/roles/assign",{method:"POST",body:JSON.stringify({role,person,chat_id:chatId})});
+  if(res?.ok){showToast("Przypisano: "+person);closePanel();rOrg()}
+  else{showToast("Blad przypisania","error")}
+}
+
+// ═══ KRONIKA ═══════════════════════════════
 
 async function rKronika(){
-  const [threads,scribe]=await Promise.all([api("/api/threads"),api("/api/analytics/scribe")]);
+  const [threads,meetings]=await Promise.all([api("/api/threads"),api("/api/meetings")]);
 
   let h='';
 
-  // Watki
+  // WATKI
   const allT=(threads?.threads||[]);
   const openT=allT.filter(t=>t.status==="open");
+
   h+=`<div class="sec"><div class="sec-title">Watki otwarte (${openT.length})</div>`;
   if(!openT.length){h+='<div class="empty">Brak otwartych watkow</div>'}
+
   openT.forEach(t=>{
-    h+=`<div class="card card-n">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <div class="ct">${t.id}: ${t.title}</div>
-        <span class="badge-sm badge-navy">AKTYWNY</span>
+    const hist=t.history||[];
+    const openQ=t.open_questions||[];
+    const totalQ=(t.questions_total||openQ.length)||1;
+    const closedQ=totalQ-openQ.length;
+    const pct=Math.round((closedQ/totalQ)*100);
+    const days=daysSince(t.opened);
+
+    h+=`<div class="accordion" id="acc-${t.id}">
+      <div class="accordion-head" onclick="document.getElementById('acc-${t.id}').classList.toggle('open')">
+        <div class="thread-head-info">
+          <div class="thread-id">${t.id}</div>
+          <div class="thread-title">${t.title||''}</div>
+          <div class="thread-meta">od ${t.opened||'?'} · ${days} dni</div>
+          <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+          <div class="progress-label">${closedQ}/${totalQ} zamkniete</div>
+        </div>
+        <span class="accordion-chevron">&#9654;</span>
       </div>
-      <div class="cm">od <span class="mono">${t.opened}</span> &middot; ${(t.tags||[]).slice(0,3).join(', ')}</div>
-      ${(t.history||[]).slice(0,2).map(h2=>`<div style="font-size:11px;color:var(--text2);padding:3px 0;margin-top:4px;border-top:1px solid var(--sep)">${h2.date} &mdash; ${(h2.source||'').slice(0,50)}</div>`).join('')}
-    </div>`;
+      <div class="accordion-body"><div class="accordion-inner">`;
+
+    // Chronological history
+    if(hist.length){
+      h+='<div style="margin-bottom:8px">';
+      hist.forEach(e=>{
+        h+=`<div class="history-entry">
+          <span class="history-date">${(e.date||'').slice(0,10)}</span>
+          <span class="history-source">${e.source||''}</span>
+          <span class="history-text">${(typeof e==='string'?e:e.text||e.event||JSON.stringify(e)).slice(0,80)}</span>
+        </div>`;
+      });
+      h+='</div>';
+    }
+
+    // Open questions
+    if(openQ.length){
+      h+='<div style="margin-top:8px"><div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:4px">OTWARTE PYTANIA</div>';
+      openQ.forEach(q=>{
+        h+=`<div style="font-size:12px;padding:2px 0;color:var(--text)">&#8226; ${typeof q==='string'?q:q.text||''}</div>`;
+      });
+      h+='</div>';
+    }
+
+    if(isCeo){
+      h+=`<button class="thread-close-btn" onclick="event.stopPropagation()">Zamknij watek</button>`;
+    }
+
+    h+=`</div></div></div>`;
   });
-  h+='</div>';
+  h+=`</div>`;
 
-  // Spotkania stats
-  h+=`<div class="sec"><div class="sec-title">Spotkania</div>
-    <div style="display:flex;gap:16px;padding:12px 0">
-      <div style="text-align:center;flex:1;padding:12px;background:var(--surface);border-radius:2px">
-        <div class="mono" style="font-size:24px;font-weight:700;color:var(--navy)">${scribe?.total_meetings||0}</div>
-        <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-top:4px">Przetworzone</div>
-      </div>
-      <div style="text-align:center;flex:1;padding:12px;background:var(--surface);border-radius:2px">
-        <div class="mono" style="font-size:24px;font-weight:700;color:var(--navy)">${scribe?.total_tasks||0}</div>
-        <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-top:4px">Zadan</div>
-      </div>
-      <div style="text-align:center;flex:1;padding:12px;background:var(--surface);border-radius:2px">
-        <div class="mono" style="font-size:24px;font-weight:700;color:var(--navy)">${scribe?.total_decisions||0}</div>
-        <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-top:4px">Decyzji</div>
-      </div>
-    </div>
-  </div>`;
+  // SPOTKANIA
+  const mList=(meetings?.meetings||[]);
+  h+=`<div class="sec"><div class="sec-title">Spotkania (${mList.length})</div>`;
+  if(!mList.length){h+='<div class="empty">Brak spotkan</div>'}
 
-  // RACI mini
-  h+=`<div class="sec"><div class="sec-title">RACI</div>
-    <div class="card" style="cursor:pointer" onclick="loadRaci()">
-      <div class="ct">Matryca odpowiedzialnosci</div>
-      <div class="cm">11 SOP &middot; 12 rol &middot; Dotknij aby rozwinac</div>
-    </div>
-    <div id="raci-detail"></div>
-  </div>`;
+  mList.forEach(m=>{
+    const decs=m.decisions||[];
+    const tasks=m.tasks||[];
+    const parts=m.participants||[];
+
+    h+=`<div class="accordion" id="acc-${m.id}">
+      <div class="accordion-head" onclick="document.getElementById('acc-${m.id}').classList.toggle('open')">
+        <div class="meeting-head-info">
+          <div class="meeting-date">${m.date||''}</div>
+          <div class="meeting-title">${m.title||m.id}</div>
+          <div class="meeting-avatars">
+            ${parts.slice(0,5).map(p=>avatarHtml(p,'avatar-sm')).join('')}
+            ${parts.length>5?`<span style="font-size:10px;color:var(--text2);margin-left:4px">+${parts.length-5}</span>`:''}
+          </div>
+          <div class="meeting-badges">
+            <span class="badge-sm badge-navy">${m.decisions_count||decs.length} decyzji</span>
+            <span class="badge-sm badge-gold">${m.tasks_count||tasks.length} zadan</span>
+          </div>
+        </div>
+        <span class="accordion-chevron">&#9654;</span>
+      </div>
+      <div class="accordion-body"><div class="accordion-inner">`;
+
+    // Participants
+    if(parts.length){
+      h+='<div style="margin-bottom:8px;font-size:12px"><span style="font-weight:600;color:var(--text2)">Uczestnicy:</span> '+parts.join(', ')+'</div>';
+    }
+
+    // Decisions
+    if(decs.length){
+      h+='<div class="meeting-list"><div class="meeting-list-title">Decyzje</div><ol>';
+      decs.forEach(d=>{h+=`<li>${d}</li>`});
+      h+='</ol></div>';
+    }
+
+    // Tasks
+    if(tasks.length){
+      h+='<div class="meeting-list" style="margin-top:8px"><div class="meeting-list-title">Zadania</div><ul>';
+      tasks.forEach(t=>{h+=`<li>${t}</li>`});
+      h+='</ul></div>';
+    }
+
+    h+=`</div></div></div>`;
+  });
+  h+=`</div>`;
 
   document.getElementById("cnt").innerHTML=h;
 }
 
-async function loadRaci(){
-  const d=document.getElementById("raci-detail");
-  if(d.innerHTML){d.innerHTML="";return}
-  const data=await api("/api/raci");
-  if(!data)return;
-  const roles=data.roles||[];
-  d.innerHTML=`<div style="overflow-x:auto;margin-top:8px"><table style="width:100%;border-collapse:collapse;font-size:11px">
-    <tr>${['SOP',...roles].map(r=>`<th style="padding:6px 4px;background:var(--surface);color:var(--text2);font-weight:600;text-align:center;border-bottom:1px solid var(--sep)">${r}</th>`).join('')}</tr>
-    ${(data.matrix||[]).map(row=>`<tr><td style="padding:5px 4px;border-bottom:1px solid var(--sep);font-weight:600;font-family:'JetBrains Mono',monospace;font-size:10px">${row.sop}</td>
-      ${roles.map(r=>{const v=row[r]||'';return`<td style="padding:5px 4px;border-bottom:1px solid var(--sep);text-align:center;font-weight:${v.includes('A')?'700':'400'};color:${v.includes('A')?'var(--danger)':v.includes('R')?'var(--gold)':'var(--text2)'}">${v}</td>`}).join('')}
-    </tr>`).join('')}
-  </table></div>`;
-}
-
-// ═══ DECYZJE ════════════════════════════════════════════
+// ═══ DECYZJE ═══════════════════════════════
 
 async function rDecyzje(){
-  const dash=await api("/api/dashboard");
+  const [dash,threads]=await Promise.all([api("/api/dashboard"),api("/api/threads")]);
   if(!dash){document.getElementById("cnt").innerHTML='<div class="empty">Brak danych</div>';return}
 
   const tasks=dash.tasks||[];
   const today=new Date().toISOString().slice(0,10);
   const pending=tasks.filter(t=>t.status==="pending_verification");
-  const overdue=tasks.filter(t=>t.deadline&&t.deadline<today&&t.status!=="closed");
-  const critical=tasks.filter(t=>t.priority==="H"&&t.status!=="closed"&&!overdue.includes(t));
-  const decisions=[...overdue,...pending,...critical];
+  const overdue=tasks.filter(t=>t.deadline&&t.deadline<today&&t.status!=="closed"&&t.status!=="cancelled");
+  const critical=tasks.filter(t=>t.priority==="H"&&t.status!=="closed"&&t.status!=="cancelled"&&!overdue.includes(t));
+
+  // Build decision items with type
+  const decisions=[];
+  overdue.forEach(t=>decisions.push({...t,decType:"ZADANIE",decLabel:"PRZETERMINOWANE",decCtx:`+${Math.ceil((Date.now()-new Date(t.deadline).getTime())/864e5)} dni`}));
+  pending.forEach(t=>decisions.push({...t,decType:"ZADANIE",decLabel:"DO WERYFIKACJI",decCtx:"ZROBIONE zgloszone"}));
+  critical.forEach(t=>decisions.push({...t,decType:"ZADANIE",decLabel:"PRIORYTET H",decCtx:t.deadline||"brak deadline"}));
+
+  // Open threads as decisions
+  const openT=(threads?.threads||[]).filter(t=>t.status==="open");
+  openT.forEach(t=>{
+    const days=daysSince(t.opened);
+    if(days>7){
+      decisions.push({id:t.id,title:`${t.id}: ${t.title}`,decType:"WATEK",
+        decLabel:"OTWARTY WATEK",decCtx:`${days} dni`,owner_role:"PM",
+        _waitDays:days,_source:"watek"});
+    }
+  });
 
   let h=`<div class="sec"><div class="sec-title">Oczekuje Twojej decyzji <span class="badge-sm badge-navy" style="margin-left:8px">${decisions.length}</span></div>`;
 
@@ -366,34 +797,74 @@ async function rDecyzje(){
     </div>`;
   }
 
-  overdue.forEach(t=>{
-    const days=Math.ceil((new Date()-new Date(t.deadline))/864e5);
-    h+=decCard(t,"PRZETERMINOWANE",`+${days} dni`,true);
+  decisions.forEach((d,i)=>{
+    const typeColor=d.decLabel.includes("PRZETERMIN")?"badge-danger"
+      :d.decLabel.includes("WERYFIK")?"badge-gold"
+      :d.decLabel.includes("WATEK")?"badge-navy":"badge-warn";
+    const waitDays=d._waitDays||daysSince(d.deadline);
+    const waitClass=waitDays>3?"overdue":"";
+
+    h+=`<div class="dec-card" id="dec-${i}">
+      <div class="dec-type"><span class="badge-sm ${typeColor}">${d.decType}</span></div>
+      <div class="dec-header">
+        <span class="badge-sm" style="visibility:hidden">${d.decLabel}</span>
+        <span class="badge-sm ${typeColor}">${d.decLabel}</span>
+      </div>
+      <div class="dec-title">${(d.title||'').slice(0,55)}</div>
+      <div class="dec-context">Zrodlo: ${d._source||'zadanie'}</div>
+      <div class="dec-wait ${waitClass}">oczekuje ${waitDays} dni</div>
+      <div class="dec-owner">
+        ${avatarHtml(d.owner_person||d.owner_role||'?','avatar-sm')}
+        <span class="dec-owner-text">${d.owner_person||''} ${d.owner_role?'('+d.owner_role+')':''}</span>
+      </div>
+      ${isCeo && d.id && !d._source?`<div class="dec-actions">
+        <button class="dec-btn dec-btn-ok" onclick="approveTask('${d.id}',${i})">&#10003; ZATWIERDZ</button>
+        <button class="dec-btn dec-btn-no" onclick="rejectTask('${d.id}',${i})">&#10007; ODRZUC</button>
+      </div>`:''}
+    </div>`;
   });
-  pending.forEach(t=>{h+=decCard(t,"DO WERYFIKACJI","ZROBIONE zgloszone",true)});
-  critical.forEach(t=>{h+=decCard(t,"PRIORYTET H",t.deadline||"brak deadline",true)});
 
   h+='</div>';
+
+  // Update badge
+  const b=document.getElementById("dec-badge");
+  if(decisions.length>0){b.textContent=decisions.length;b.style.display=""}else{b.style.display="none"}
+
   document.getElementById("cnt").innerHTML=h;
 }
 
-function decCard(t,type,ctx,actions){
-  const typeColor=type.includes("PRZETERMIN")?"badge-danger":type.includes("WERYFIK")?"badge-gold":"badge-warn";
-  return`<div class="card card-n">
-    <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:6px">
-      <span class="badge-sm ${typeColor}">${type}</span>
-      <span class="mono" style="font-size:10px;color:var(--text2)">${ctx}</span>
-    </div>
-    <div class="ct">${(t.title||'').slice(0,55)}</div>
-    <div class="cm">${t.owner_role||t.owner_person||''} &middot; <span class="mono">${t.deadline||''}</span></div>
-    ${actions&&isCeo?`<div class="cbtn-row">
-      <button class="cbtn cbtn-ok">Zatwierdz</button>
-      <button class="cbtn cbtn-no">Odrzuc</button>
-    </div>`:''}
-  </div>`;
+async function approveTask(taskId,cardIdx){
+  const card=document.getElementById("dec-"+cardIdx);
+  const res=await api(`/api/tasks/${taskId}/approve`,{method:"POST",body:JSON.stringify({})});
+  if(res?.ok){
+    card.classList.add("slide-out");
+    showToast("Zatwierdzone · "+taskId);
+    setTimeout(()=>{card.style.display="none";updateDecBadge(-1)},400);
+  } else {
+    showToast("Blad zatwierdzania","error");
+  }
 }
 
-// ═══ INIT ═══════════════════════════════════════════════
+async function rejectTask(taskId,cardIdx){
+  const card=document.getElementById("dec-"+cardIdx);
+  const res=await api(`/api/tasks/${taskId}/reject`,{method:"POST",body:JSON.stringify({})});
+  if(res?.ok){
+    card.classList.add("slide-out");
+    showToast("Odrzucone · "+taskId);
+    setTimeout(()=>{card.style.display="none";updateDecBadge(-1)},400);
+  } else {
+    showToast("Blad odrzucania","error");
+  }
+}
+
+function updateDecBadge(delta){
+  const b=document.getElementById("dec-badge");
+  let v=parseInt(b.textContent||"0")+delta;
+  if(v<=0){b.style.display="none";b.textContent="0"}
+  else{b.textContent=v;b.style.display=""}
+}
+
+// ═══ INIT ═══════════════════════════════
 render("map");
 </script>
 </body>
