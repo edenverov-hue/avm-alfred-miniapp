@@ -3,485 +3,398 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>AVM — Pulse</title>
+  <title>AVM Engineering</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Source+Sans+3:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
-    :root {
-      --bg: #0a0a0a;
-      --surface: #141414;
-      --border: #222;
-      --accent: #e8a000;
-      --text: #f0f0f0;
-      --muted: #666;
-      --danger: #ef4444;
-      --warn: #f59e0b;
-      --ok: #22c55e;
-      --radius: 14px;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      background: var(--tg-theme-bg-color, var(--bg));
-      color: var(--tg-theme-text-color, var(--text));
-      font-family: 'DM Sans', -apple-system, sans-serif;
-      min-height: 100vh;
-      padding-bottom: env(safe-area-inset-bottom, 70px);
-      -webkit-font-smoothing: antialiased;
-    }
-    .mono { font-family: 'DM Mono', monospace; }
+:root {
+  --bg:#fff; --surface:#F8F9FB; --navy:#1B2B4B; --navy-l:#2D4270;
+  --gold:#C8860A; --text:#1B2B4B; --text2:#6B7A99; --sep:#E8ECF4;
+  --ok:#0F7B55; --warn:#B85C00; --danger:#B51C1C;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Source Sans 3',sans-serif;
+  min-height:100vh;padding-bottom:calc(64px + env(safe-area-inset-bottom,0px));
+  -webkit-font-smoothing:antialiased}
+.pf{font-family:'Playfair Display',serif}
+.mono{font-family:'JetBrains Mono',monospace}
 
-    /* Header */
-    .header {
-      padding: 16px 20px 12px;
-      display: flex; align-items: center; gap: 10px;
-      position: sticky; top: 0; z-index: 50;
-      background: var(--bg);
-    }
-    .logo { font-size: 22px; font-weight: 700; color: var(--accent); letter-spacing: -1px; }
-    .header-status { margin-left: auto; font-size: 11px; color: var(--muted); }
+/* Header */
+.hdr{padding:20px 20px 12px;border-bottom:1px solid var(--sep)}
+.hdr-title{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:var(--navy);letter-spacing:-0.3px}
+.hdr-sub{font-size:11px;color:var(--text2);margin-top:2px;font-family:'JetBrains Mono',monospace}
 
-    /* Bottom Nav */
-    .bottom-nav {
-      position: fixed; bottom: 0; left: 0; right: 0;
-      display: flex; z-index: 100;
-      background: var(--surface);
-      border-top: 1px solid var(--border);
-      padding-bottom: env(safe-area-inset-bottom, 0px);
-    }
-    .nav-item {
-      flex: 1; padding: 10px 0 8px; text-align: center;
-      color: var(--muted); font-size: 10px; font-weight: 600;
-      cursor: pointer; transition: color 0.2s;
-      border: none; background: none;
-      display: flex; flex-direction: column; align-items: center; gap: 3px;
-    }
-    .nav-item.active { color: var(--accent); }
-    .nav-icon { font-size: 22px; line-height: 1; }
-    .nav-badge {
-      position: absolute; top: 4px; right: calc(50% - 18px);
-      background: var(--danger); color: #fff;
-      font-size: 9px; font-weight: 700; padding: 1px 5px;
-      border-radius: 8px; min-width: 14px; text-align: center;
-    }
+/* Bottom Nav */
+.bnav{position:fixed;bottom:0;left:0;right:0;display:flex;z-index:100;
+  background:#fff;border-top:1px solid var(--sep);
+  padding-bottom:env(safe-area-inset-bottom,0px)}
+.bnav button{flex:1;padding:10px 0 8px;border:none;background:none;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+  color:var(--text2);transition:all 0.2s;position:relative}
+.bnav button.on{color:#fff;background:var(--navy)}
+.bnav button .ni{font-size:20px;line-height:1}
+.bnav .badge{position:absolute;top:4px;right:calc(50% - 16px);
+  background:var(--danger);color:#fff;font-size:8px;font-weight:700;
+  padding:1px 5px;border-radius:6px;min-width:14px;text-align:center}
 
-    /* Content */
-    .content { padding: 0 16px 80px; max-width: 500px; margin: 0 auto; }
-    .screen-title { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; margin: 16px 0 12px; }
+/* Content */
+.cnt{padding:0 20px 20px;max-width:540px;margin:0 auto}
+.sec{margin-top:24px}
+.sec-title{font-family:'Playfair Display',serif;font-size:15px;font-weight:600;color:var(--navy);
+  margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--sep)}
 
-    /* Pulse Cards */
-    .pulse-section { margin-bottom: 20px; }
-    .pulse-label {
-      font-size: 11px; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 1px; padding: 4px 0; margin-bottom: 8px;
-      display: flex; align-items: center; gap: 8px;
-    }
-    .pulse-dot { width: 8px; height: 8px; border-radius: 50%; }
+/* Process Flow */
+.flow{display:flex;align-items:stretch;gap:0;overflow-x:auto;padding:8px 0 12px;-webkit-overflow-scrolling:touch}
+.flow-step{flex-shrink:0;width:90px;text-align:center;position:relative}
+.flow-box{background:var(--surface);border:1px solid var(--sep);border-radius:2px;padding:10px 6px;
+  min-height:72px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.flow-box.gate{border-left:3px solid var(--gold)}
+.flow-box.problem{border-color:var(--danger)}
+.flow-id{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text2);font-weight:500}
+.flow-name{font-size:11px;font-weight:600;color:var(--navy);margin:3px 0 2px}
+.flow-role{font-size:9px;color:var(--gold);font-weight:700;letter-spacing:0.5px}
+.flow-dot{width:6px;height:6px;border-radius:50%;margin-top:4px}
+.flow-arrow{position:absolute;right:-8px;top:50%;transform:translateY(-50%);
+  color:var(--sep);font-size:14px;z-index:1}
 
-    .card {
-      background: var(--surface); border-radius: var(--radius);
-      padding: 16px; margin-bottom: 10px;
-      border-left: 4px solid var(--border);
-      animation: slideUp 0.3s ease-out both;
-    }
-    .card-danger { border-left-color: var(--danger); }
-    .card-warn { border-left-color: var(--warn); }
-    .card-ok { border-left-color: var(--ok); }
-    .card-accent { border-left-color: var(--accent); }
-    @keyframes slideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+/* Cards */
+.card{background:var(--surface);border-radius:2px;padding:14px 16px;margin-bottom:8px;
+  border-left:3px solid var(--sep);transition:background 0.15s}
+.card:active{background:var(--sep)}
+.card-d{border-left-color:var(--danger)}
+.card-w{border-left-color:var(--warn)}
+.card-g{border-left-color:var(--ok)}
+.card-n{border-left-color:var(--navy)}
+.card-gold{border-left-color:var(--gold)}
+.ct{font-size:14px;font-weight:600;color:var(--navy);line-height:1.3}
+.cm{font-size:11px;color:var(--text2);margin-top:3px}
+.cm .mono{font-size:11px}
+.cbtn-row{display:flex;gap:8px;margin-top:10px}
+.cbtn{flex:1;padding:10px;border-radius:2px;border:1px solid var(--sep);font-size:12px;
+  font-weight:700;cursor:pointer;text-align:center;transition:opacity 0.15s;
+  font-family:'Source Sans 3',sans-serif}
+.cbtn:active{opacity:0.6}
+.cbtn-ok{background:var(--ok);color:#fff;border-color:var(--ok)}
+.cbtn-no{background:#fff;color:var(--danger);border-color:var(--danger)}
 
-    .card-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
-    .card-meta { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
-    .card-actions { display: flex; gap: 8px; margin-top: 10px; }
+/* Org Tree */
+.tree{font-family:'JetBrains Mono',monospace;font-size:13px;line-height:2}
+.tree-line{display:flex;align-items:center;padding:2px 0}
+.tree-indent{color:var(--sep);white-space:pre}
+.tree-role{font-weight:700;color:var(--navy);min-width:80px;display:inline-block}
+.tree-dash{color:var(--sep);margin:0 6px}
+.tree-person{color:var(--text)}
+.tree-empty{color:var(--text2);font-style:italic}
+.tree-dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:6px}
 
-    .btn {
-      flex: 1; padding: 12px; border-radius: 10px; border: none;
-      font-size: 13px; font-weight: 700; cursor: pointer;
-      text-align: center; transition: opacity 0.2s;
-    }
-    .btn:active { opacity: 0.7; }
-    .btn-ok { background: var(--ok); color: #000; }
-    .btn-danger { background: var(--danger); color: #fff; }
-    .btn-ghost { background: var(--border); color: var(--text); }
+/* Kronika */
+.kron-row{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--sep)}
+.kron-date{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--navy-l);
+  min-width:60px;flex-shrink:0;padding-top:2px}
+.kron-body{flex:1}
+.kron-title{font-size:13px;font-weight:600;color:var(--navy)}
+.kron-meta{font-size:11px;color:var(--text2);margin-top:2px}
 
-    .countdown { font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 500; }
-    .countdown-urgent { color: var(--danger); }
-    .countdown-soon { color: var(--warn); }
+/* Badges */
+.badge-sm{font-size:10px;font-weight:700;padding:2px 8px;border-radius:2px;display:inline-block}
+.badge-navy{background:var(--navy);color:#fff}
+.badge-gold{background:var(--gold);color:#fff}
+.badge-ok{background:#E8F5E9;color:var(--ok)}
+.badge-warn{background:#FFF3E0;color:var(--warn)}
+.badge-danger{background:#FFEBEE;color:var(--danger)}
 
-    /* Team Cards */
-    .person-card {
-      display: flex; align-items: center; gap: 14px;
-      padding: 14px; background: var(--surface); border-radius: var(--radius);
-      margin-bottom: 8px;
-    }
-    .avatar {
-      width: 44px; height: 44px; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 16px; font-weight: 700; flex-shrink: 0;
-    }
-    .avatar-active { background: var(--ok); color: #000; }
-    .avatar-empty { background: var(--border); color: var(--muted); }
-    .person-info { flex: 1; }
-    .person-name { font-size: 15px; font-weight: 600; }
-    .person-role { font-size: 11px; color: var(--accent); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-    .person-tasks { font-size: 12px; color: var(--muted); margin-top: 2px; }
-
-    /* System Section */
-    .sys-row {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 14px 16px; background: var(--surface); border-radius: var(--radius);
-      margin-bottom: 8px; cursor: pointer;
-    }
-    .sys-label { font-size: 14px; font-weight: 500; }
-    .sys-value { font-size: 13px; color: var(--muted); }
-    .sys-icon { font-size: 18px; margin-right: 10px; }
-    .expand-content { display: none; padding: 0 16px 16px; background: var(--surface); border-radius: 0 0 var(--radius) var(--radius); margin-top: -8px; margin-bottom: 8px; }
-
-    /* Status Bar */
-    .status-bar {
-      display: flex; gap: 0; border-radius: 8px; overflow: hidden;
-      height: 6px; margin-bottom: 16px;
-    }
-    .status-seg { transition: width 0.5s ease; }
-
-    .skeleton { background: var(--border); border-radius: 8px; animation: pulse 1.5s ease-in-out infinite; }
-    @keyframes pulse { 0%,100% { opacity: 0.4; } 50% { opacity: 0.8; } }
-
-    .empty-state { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 14px; }
+.empty{text-align:center;padding:32px 16px;color:var(--text2);font-size:13px}
+.skel{background:var(--sep);border-radius:2px;animation:sk 1.5s ease infinite}
+@keyframes sk{0%,100%{opacity:.3}50%{opacity:.6}}
   </style>
 </head>
 <body>
 
-<div class="header">
-  <div class="logo">AVM</div>
-  <div class="header-status" id="hdr-status"></div>
+<div class="hdr">
+  <div class="hdr-title">AVM Engineering</div>
+  <div class="hdr-sub" id="hdr-time"></div>
 </div>
 
-<div class="content" id="content">
-  <div style="padding:40px 0;text-align:center;color:var(--muted)">
-    <div class="skeleton" style="width:60%;height:20px;margin:0 auto 12px"></div>
-    <div class="skeleton" style="width:80%;height:60px;margin:0 auto 12px"></div>
-    <div class="skeleton" style="width:80%;height:60px;margin:0 auto"></div>
-  </div>
+<div class="cnt" id="cnt">
+  <div style="padding:32px 0"><div class="skel" style="width:70%;height:16px;margin:0 auto 12px"></div>
+  <div class="skel" style="width:90%;height:50px;margin:0 auto 8px"></div>
+  <div class="skel" style="width:90%;height:50px;margin:0 auto"></div></div>
 </div>
 
-<nav class="bottom-nav" id="bottom-nav">
-  <button class="nav-item active" onclick="go('focus')" style="position:relative">
-    <span class="nav-icon">&#9889;</span>Teraz<span class="nav-badge" id="badge-focus" style="display:none">0</span>
-  </button>
-  <button class="nav-item" onclick="go('projects')">
-    <span class="nav-icon">&#128188;</span>Projekty
-  </button>
-  <button class="nav-item" onclick="go('team')">
-    <span class="nav-icon">&#128101;</span>Zespol
-  </button>
-  <button class="nav-item" onclick="go('system')">
-    <span class="nav-icon">&#9881;</span>System
-  </button>
+<nav class="bnav" id="bnav">
+  <button class="on" onclick="go('map',this)"><span class="ni">&#9635;</span>Mapa</button>
+  <button onclick="go('org',this)"><span class="ni">&#9783;</span>Org</button>
+  <button onclick="go('kronika',this)"><span class="ni">&#9776;</span>Kronika</button>
+  <button onclick="go('decyzje',this)" style="position:relative"><span class="ni">&#9733;</span>Decyzje<span class="badge" id="dec-badge" style="display:none">0</span></button>
 </nav>
 
 <script>
-const API_BASE = window.ALFRED_API_URL || "";
+const API = "";
 const CEO_ID = "950876530";
 const tg = window.Telegram?.WebApp;
-if (tg) { tg.ready(); tg.expand(); }
-const user = tg?.initDataUnsafe?.user;
-const chat_id = user?.id?.toString() || "unknown";
-const is_ceo = chat_id === CEO_ID;
+if(tg){tg.ready();tg.expand();tg.setHeaderColor('#ffffff');tg.setBackgroundColor('#ffffff')}
+const uid = tg?.initDataUnsafe?.user?.id?.toString()||"unknown";
+const isCeo = uid===CEO_ID;
 
-let currentScreen = "focus";
-
-async function api(ep) {
-  try {
-    const r = await fetch(API_BASE + ep, {headers:{"X-Chat-Id":chat_id}});
-    if (!r.ok) throw new Error(r.status);
-    return await r.json();
-  } catch(e) { console.error("API:",e); return null; }
+async function api(ep){
+  try{const r=await fetch(API+ep,{headers:{"X-Chat-Id":uid}});if(!r.ok)throw r.status;return await r.json()}
+  catch(e){console.error(e);return null}
 }
 
-function go(id) {
-  currentScreen = id;
-  document.querySelectorAll(".nav-item").forEach(b => b.classList.remove("active"));
-  event.currentTarget.classList.add("active");
+function go(id,btn){
+  document.querySelectorAll(".bnav button").forEach(b=>b.classList.remove("on"));
+  if(btn)btn.classList.add("on");
   render(id);
 }
 
-async function render(id) {
-  const c = document.getElementById("content");
-  c.innerHTML = '<div style="padding:30px;text-align:center;color:var(--muted)"><div class="skeleton" style="width:80%;height:60px;margin:8px auto"></div><div class="skeleton" style="width:80%;height:60px;margin:8px auto"></div></div>';
-  switch(id) {
-    case "focus": await renderFocus(); break;
-    case "projects": await renderProjects(); break;
-    case "team": await renderTeam(); break;
-    case "system": await renderSystem(); break;
+async function render(id){
+  const c=document.getElementById("cnt");
+  c.innerHTML='<div style="padding:32px 0"><div class="skel" style="width:80%;height:50px;margin:8px auto"></div><div class="skel" style="width:80%;height:50px;margin:8px auto"></div></div>';
+  switch(id){
+    case"map":await rMap();break;
+    case"org":await rOrg();break;
+    case"kronika":await rKronika();break;
+    case"decyzje":await rDecyzje();break;
   }
-  document.getElementById("hdr-status").textContent = new Date().toLocaleTimeString("pl",{hour:"2-digit",minute:"2-digit"});
+  document.getElementById("hdr-time").textContent=new Date().toLocaleTimeString("pl",{hour:"2-digit",minute:"2-digit"})+" · "+new Date().toLocaleDateString("pl",{day:"numeric",month:"short"});
 }
 
-// ── FOCUS (Pulse) ────────────────────────────────────────────
+// ═══ MAPA ═══════════════════════════════════════════════
 
-async function renderFocus() {
-  const [dash, threads] = await Promise.all([api("/api/dashboard"), api("/api/threads")]);
-  if (!dash) { document.getElementById("content").innerHTML = '<div class="empty-state">Nie mozna polaczyc z serwerem</div>'; return; }
+const FLOW=[
+  {id:"SOP-01",name:"Sprzedaz",role:"KVP",gate:false},
+  {id:"SOP-04",name:"Przekazanie",role:"PM",gate:true},
+  {id:"SOP-05",name:"Planowanie",role:"PM",gate:false},
+  {id:"SOP-06",name:"Montaz",role:"FOREMAN",gate:true},
+  {id:"SOP-09",name:"Zamkniecie",role:"FIN",gate:true},
+];
 
-  const s = dash.stats;
-  const tasks = dash.tasks || [];
-  const today = new Date().toISOString().slice(0,10);
+async function rMap(){
+  const [dash,threads]=await Promise.all([api("/api/dashboard"),api("/api/threads")]);
+  if(!dash){document.getElementById("cnt").innerHTML='<div class="empty">Brak polaczenia</div>';return}
 
-  // Kategoryzuj
-  const now = tasks.filter(t => t.status === "pending_verification" || t.priority === "H" && t.status !== "closed");
-  const watch = tasks.filter(t => {
-    if (t.status === "closed") return false;
-    if (now.includes(t)) return false;
-    if (!t.deadline) return false;
-    const dl = new Date(t.deadline);
-    const diff = (dl - new Date()) / 86400000;
-    return diff <= 3 && diff >= 0;
-  });
-  const overdue = tasks.filter(t => t.deadline && t.deadline < today && t.status !== "closed");
+  const tasks=dash.tasks||[];
+  const today=new Date().toISOString().slice(0,10);
+  const active=tasks.filter(t=>t.status!=="closed"&&t.status!=="cancelled");
+  const openT=(threads?.threads||[]).filter(t=>t.status==="open");
 
-  // Badge
-  const urgentCount = now.length + overdue.length;
-  const badge = document.getElementById("badge-focus");
-  if (urgentCount > 0) { badge.textContent = urgentCount; badge.style.display = ""; }
-  else { badge.style.display = "none"; }
-
-  // Status bar
-  const total = Math.max(tasks.length, 1);
-  const closedPct = tasks.filter(t=>t.status==="closed").length / total * 100;
-  const progPct = tasks.filter(t=>t.status==="in_progress").length / total * 100;
-  const openPct = 100 - closedPct - progPct;
-
-  let html = `<div class="status-bar">
-    <div class="status-seg" style="width:${closedPct}%;background:var(--ok)"></div>
-    <div class="status-seg" style="width:${progPct}%;background:var(--warn)"></div>
-    <div class="status-seg" style="width:${openPct}%;background:var(--border)"></div>
-  </div>`;
-
-  // TERAZ
-  if (now.length || overdue.length) {
-    html += `<div class="pulse-section">
-      <div class="pulse-label"><div class="pulse-dot" style="background:var(--danger)"></div>TERAZ — wymaga decyzji</div>`;
-    overdue.forEach((t,i) => { html += focusCard(t, "danger", `Przeterminowane`, i); });
-    now.forEach((t,i) => {
-      const label = t.status === "pending_verification" ? "Do weryfikacji" : "Priorytet H";
-      html += focusCard(t, "danger", label, overdue.length + i);
-    });
-    html += `</div>`;
-  }
-
-  // OBSERWUJ
-  if (watch.length) {
-    html += `<div class="pulse-section">
-      <div class="pulse-label"><div class="pulse-dot" style="background:var(--warn)"></div>OBSERWUJ — deadline blisko</div>`;
-    watch.forEach((t,i) => {
-      const dl = new Date(t.deadline);
-      const diff = Math.ceil((dl - new Date()) / 86400000);
-      const label = diff <= 0 ? "dzis" : diff === 1 ? "jutro" : `za ${diff} dni`;
-      html += focusCard(t, "warn", label, i, true);
-    });
-    html += `</div>`;
-  }
-
-  // Wątki
-  const openThreads = (threads?.threads || []).filter(t => t.status === "open");
-  if (openThreads.length) {
-    html += `<div class="pulse-section">
-      <div class="pulse-label"><div class="pulse-dot" style="background:var(--accent)"></div>WATKI (${openThreads.length})</div>`;
-    openThreads.forEach(t => {
-      html += `<div class="card card-accent" style="padding:12px 16px">
-        <div style="font-size:13px;font-weight:600">${t.id}: ${t.title}</div>
-        <div style="font-size:11px;color:var(--muted)">od ${t.opened} &middot; ${(t.tags||[]).slice(0,3).join(', ')}</div>
-      </div>`;
-    });
-    html += `</div>`;
-  }
-
-  // OK
-  if (!now.length && !overdue.length && !watch.length) {
-    html += `<div class="card card-ok" style="text-align:center;padding:24px">
-      <div style="font-size:20px;margin-bottom:8px">&#10003;</div>
-      <div style="font-size:14px;font-weight:600">System sprawny</div>
-      <div style="font-size:12px;color:var(--muted);margin-top:4px">${tasks.length} zadan &middot; ${openThreads.length} watkow &middot; 0 alertow</div>
+  // Flow
+  let flowH='<div class="sec"><div class="sec-title">Procesy AVM</div><div class="flow">';
+  FLOW.forEach((s,i)=>{
+    const hasProblem=active.some(t=>(t.owner_role||"").includes(s.role)&&t.priority==="H");
+    flowH+=`<div class="flow-step">
+      <div class="flow-box ${s.gate?'gate':''} ${hasProblem?'problem':''}">
+        <div class="flow-id mono">${s.id}</div>
+        <div class="flow-name">${s.name}</div>
+        <div class="flow-role">${s.role}</div>
+        <div class="flow-dot" style="background:${hasProblem?'var(--danger)':'var(--ok)'}"></div>
+      </div>
+      ${i<FLOW.length-1?'<div class="flow-arrow">&rarr;</div>':''}
     </div>`;
-  }
+  });
+  flowH+='</div></div>';
 
-  document.getElementById("content").innerHTML = html;
+  // Aktywne sprawy
+  let spH='<div class="sec"><div class="sec-title">Aktywne sprawy</div>';
+  if(!active.length&&!openT.length){spH+='<div class="empty">Brak aktywnych spraw</div>'}
+
+  // Overdue first
+  const overdue=active.filter(t=>t.deadline&&t.deadline<today);
+  overdue.forEach(t=>{
+    const days=Math.ceil((new Date()-new Date(t.deadline))/864e5);
+    spH+=`<div class="card card-d"><div class="ct">${(t.title||'').slice(0,50)}</div>
+      <div class="cm">${t.owner_role||''} &middot; <span class="mono badge-sm badge-danger">+${days}d</span></div></div>`;
+  });
+
+  // High priority
+  active.filter(t=>t.priority==="H"&&!overdue.includes(t)).forEach(t=>{
+    spH+=`<div class="card card-w"><div class="ct">${(t.title||'').slice(0,50)}</div>
+      <div class="cm">${t.owner_role||''} &middot; <span class="mono">${t.deadline||''}</span> &middot; <span class="badge-sm badge-warn">H</span></div></div>`;
+  });
+
+  // Pending verification
+  active.filter(t=>t.status==="pending_verification").forEach(t=>{
+    spH+=`<div class="card card-gold"><div class="ct">${(t.title||'').slice(0,50)}</div>
+      <div class="cm">${t.owner_role||t.owner_person||''} &middot; Do weryfikacji</div></div>`;
+  });
+
+  // Threads
+  openT.forEach(t=>{
+    spH+=`<div class="card card-n"><div class="ct">${t.id}: ${t.title}</div>
+      <div class="cm">od <span class="mono">${t.opened}</span> &middot; ${(t.tags||[]).slice(0,3).join(', ')}</div></div>`;
+  });
+
+  spH+='</div>';
+
+  // Update decision badge
+  const pendingCount=active.filter(t=>t.status==="pending_verification").length+overdue.length;
+  const b=document.getElementById("dec-badge");
+  if(pendingCount>0){b.textContent=pendingCount;b.style.display=""}else{b.style.display="none"}
+
+  document.getElementById("cnt").innerHTML=flowH+spH;
 }
 
-function focusCard(t, type, label, idx, noActions) {
-  const delay = idx * 0.05;
-  return `<div class="card card-${type}" style="animation-delay:${delay}s">
-    <div style="display:flex;justify-content:space-between;align-items:start">
-      <div style="flex:1">
-        <div class="card-title">${t.title?.slice(0,50) || 'Zadanie'}</div>
-        <div class="card-meta">${t.owner_role||t.owner_person||''} &middot; <span class="countdown countdown-${type==='danger'?'urgent':'soon'}">${label}</span></div>
+// ═══ ORGANIZACJA ════════════════════════════════════════
+
+const TREE=[
+  {role:"CEO",indent:"",person:null,dot:"ok"},
+  {role:"KVP",indent:"  \u251C\u2500 ",person:null,dot:"empty"},
+  {role:"HUNTER",indent:"  \u2502   \u251C\u2500 ",person:null,dot:"empty"},
+  {role:"FARMER",indent:"  \u2502   \u2514\u2500 ",person:null,dot:"empty"},
+  {role:"AM",indent:"  \u2502   ",person:null,dot:"empty"},
+  {role:"PM",indent:"  \u251C\u2500 ",person:null,dot:"empty"},
+  {role:"TECH",indent:"  \u2502   \u251C\u2500 ",person:null,dot:"empty"},
+  {role:"FOREMAN",indent:"  \u2502   \u251C\u2500 ",person:null,dot:"empty"},
+  {role:"SERVICE",indent:"  \u2502   \u2514\u2500 ",person:null,dot:"empty"},
+  {role:"FIN",indent:"  \u2514\u2500 ",person:null,dot:"empty"},
+];
+
+async function rOrg(){
+  const data=await api("/api/org");
+  if(!data){document.getElementById("cnt").innerHTML='<div class="empty">Brak danych</div>';return}
+  const roles=data.roles||{};
+
+  let h='<div class="sec"><div class="sec-title">Struktura AVM Engineering</div><div class="tree">';
+  TREE.forEach(t=>{
+    const r=roles[t.role]||{};
+    const person=r.person;
+    const active=r.active;
+    const dotColor=active?"var(--ok)":person?"var(--warn)":"var(--sep)";
+    h+=`<div class="tree-line">
+      <span class="tree-indent">${t.indent}</span>
+      <span class="tree-dot" style="background:${dotColor}"></span>
+      <span class="tree-role">${t.role}</span>
+      <span class="tree-dash">&mdash;</span>
+      ${person?`<span class="tree-person">${person}</span>`:'<span class="tree-empty">nieobsadzony</span>'}
+    </div>`;
+  });
+  h+='</div></div>';
+
+  document.getElementById("cnt").innerHTML=h;
+}
+
+// ═══ KRONIKA ════════════════════════════════════════════
+
+async function rKronika(){
+  const [threads,scribe]=await Promise.all([api("/api/threads"),api("/api/analytics/scribe")]);
+
+  let h='';
+
+  // Watki
+  const allT=(threads?.threads||[]);
+  const openT=allT.filter(t=>t.status==="open");
+  h+=`<div class="sec"><div class="sec-title">Watki otwarte (${openT.length})</div>`;
+  if(!openT.length){h+='<div class="empty">Brak otwartych watkow</div>'}
+  openT.forEach(t=>{
+    h+=`<div class="card card-n">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="ct">${t.id}: ${t.title}</div>
+        <span class="badge-sm badge-navy">AKTYWNY</span>
+      </div>
+      <div class="cm">od <span class="mono">${t.opened}</span> &middot; ${(t.tags||[]).slice(0,3).join(', ')}</div>
+      ${(t.history||[]).slice(0,2).map(h2=>`<div style="font-size:11px;color:var(--text2);padding:3px 0;margin-top:4px;border-top:1px solid var(--sep)">${h2.date} &mdash; ${(h2.source||'').slice(0,50)}</div>`).join('')}
+    </div>`;
+  });
+  h+='</div>';
+
+  // Spotkania stats
+  h+=`<div class="sec"><div class="sec-title">Spotkania</div>
+    <div style="display:flex;gap:16px;padding:12px 0">
+      <div style="text-align:center;flex:1;padding:12px;background:var(--surface);border-radius:2px">
+        <div class="mono" style="font-size:24px;font-weight:700;color:var(--navy)">${scribe?.total_meetings||0}</div>
+        <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-top:4px">Przetworzone</div>
+      </div>
+      <div style="text-align:center;flex:1;padding:12px;background:var(--surface);border-radius:2px">
+        <div class="mono" style="font-size:24px;font-weight:700;color:var(--navy)">${scribe?.total_tasks||0}</div>
+        <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-top:4px">Zadan</div>
+      </div>
+      <div style="text-align:center;flex:1;padding:12px;background:var(--surface);border-radius:2px">
+        <div class="mono" style="font-size:24px;font-weight:700;color:var(--navy)">${scribe?.total_decisions||0}</div>
+        <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-top:4px">Decyzji</div>
       </div>
     </div>
-    ${!noActions && is_ceo ? `<div class="card-actions">
-      <button class="btn btn-ok" onclick="event.stopPropagation()">&#10003; Zatwierdz</button>
-      <button class="btn btn-danger" onclick="event.stopPropagation()">&#10007; Odrzuc</button>
-    </div>` : ''}
+  </div>`;
+
+  // RACI mini
+  h+=`<div class="sec"><div class="sec-title">RACI</div>
+    <div class="card" style="cursor:pointer" onclick="loadRaci()">
+      <div class="ct">Matryca odpowiedzialnosci</div>
+      <div class="cm">11 SOP &middot; 12 rol &middot; Dotknij aby rozwinac</div>
+    </div>
+    <div id="raci-detail"></div>
+  </div>`;
+
+  document.getElementById("cnt").innerHTML=h;
+}
+
+async function loadRaci(){
+  const d=document.getElementById("raci-detail");
+  if(d.innerHTML){d.innerHTML="";return}
+  const data=await api("/api/raci");
+  if(!data)return;
+  const roles=data.roles||[];
+  d.innerHTML=`<div style="overflow-x:auto;margin-top:8px"><table style="width:100%;border-collapse:collapse;font-size:11px">
+    <tr>${['SOP',...roles].map(r=>`<th style="padding:6px 4px;background:var(--surface);color:var(--text2);font-weight:600;text-align:center;border-bottom:1px solid var(--sep)">${r}</th>`).join('')}</tr>
+    ${(data.matrix||[]).map(row=>`<tr><td style="padding:5px 4px;border-bottom:1px solid var(--sep);font-weight:600;font-family:'JetBrains Mono',monospace;font-size:10px">${row.sop}</td>
+      ${roles.map(r=>{const v=row[r]||'';return`<td style="padding:5px 4px;border-bottom:1px solid var(--sep);text-align:center;font-weight:${v.includes('A')?'700':'400'};color:${v.includes('A')?'var(--danger)':v.includes('R')?'var(--gold)':'var(--text2)'}">${v}</td>`}).join('')}
+    </tr>`).join('')}
+  </table></div>`;
+}
+
+// ═══ DECYZJE ════════════════════════════════════════════
+
+async function rDecyzje(){
+  const dash=await api("/api/dashboard");
+  if(!dash){document.getElementById("cnt").innerHTML='<div class="empty">Brak danych</div>';return}
+
+  const tasks=dash.tasks||[];
+  const today=new Date().toISOString().slice(0,10);
+  const pending=tasks.filter(t=>t.status==="pending_verification");
+  const overdue=tasks.filter(t=>t.deadline&&t.deadline<today&&t.status!=="closed");
+  const critical=tasks.filter(t=>t.priority==="H"&&t.status!=="closed"&&!overdue.includes(t));
+  const decisions=[...overdue,...pending,...critical];
+
+  let h=`<div class="sec"><div class="sec-title">Oczekuje Twojej decyzji <span class="badge-sm badge-navy" style="margin-left:8px">${decisions.length}</span></div>`;
+
+  if(!decisions.length){
+    h+=`<div style="text-align:center;padding:40px 16px">
+      <div style="font-size:32px;margin-bottom:12px;color:var(--ok)">&#10003;</div>
+      <div style="font-family:'Playfair Display',serif;font-size:16px;color:var(--navy)">Wszystko zatwierdzone</div>
+      <div style="font-size:12px;color:var(--text2);margin-top:6px">Brak spraw wymagajacych decyzji</div>
+    </div>`;
+  }
+
+  overdue.forEach(t=>{
+    const days=Math.ceil((new Date()-new Date(t.deadline))/864e5);
+    h+=decCard(t,"PRZETERMINOWANE",`+${days} dni`,true);
+  });
+  pending.forEach(t=>{h+=decCard(t,"DO WERYFIKACJI","ZROBIONE zgloszone",true)});
+  critical.forEach(t=>{h+=decCard(t,"PRIORYTET H",t.deadline||"brak deadline",true)});
+
+  h+='</div>';
+  document.getElementById("cnt").innerHTML=h;
+}
+
+function decCard(t,type,ctx,actions){
+  const typeColor=type.includes("PRZETERMIN")?"badge-danger":type.includes("WERYFIK")?"badge-gold":"badge-warn";
+  return`<div class="card card-n">
+    <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:6px">
+      <span class="badge-sm ${typeColor}">${type}</span>
+      <span class="mono" style="font-size:10px;color:var(--text2)">${ctx}</span>
+    </div>
+    <div class="ct">${(t.title||'').slice(0,55)}</div>
+    <div class="cm">${t.owner_role||t.owner_person||''} &middot; <span class="mono">${t.deadline||''}</span></div>
+    ${actions&&isCeo?`<div class="cbtn-row">
+      <button class="cbtn cbtn-ok">Zatwierdz</button>
+      <button class="cbtn cbtn-no">Odrzuc</button>
+    </div>`:''}
   </div>`;
 }
 
-// ── PROJEKTY ────────────────────────────────────────────
-
-async function renderProjects() {
-  const data = await api("/api/projects");
-  if (!data) { document.getElementById("content").innerHTML = '<div class="empty-state">Brak danych</div>'; return; }
-  const projects = data.projects || [];
-  let html = `<div class="screen-title">Projekty (${projects.length})</div>`;
-
-  if (!projects.length) { html += '<div class="empty-state">Brak projektow</div>'; }
-
-  projects.forEach((p, i) => {
-    const tasksPct = p.tasks_closed / Math.max(p.tasks_open + p.tasks_closed, 1) * 100;
-    html += `<div class="card ${p.has_risk ? 'card-danger' : 'card-accent'}" style="animation-delay:${i*0.05}s;cursor:pointer" onclick="toggleEl('proj-${i}')">
-      <div style="display:flex;justify-content:space-between">
-        <div>
-          <div class="card-title">${p.client}</div>
-          <div class="card-meta">${p.sop||''} &middot; ${p.phase||p.status} ${p.pm ? '&middot; PM: '+p.pm : ''}</div>
-        </div>
-        ${p.has_risk ? '<div style="color:var(--danger);font-size:20px">&#9888;</div>' : ''}
-      </div>
-      <div style="display:flex;gap:16px;margin-top:8px;font-size:13px">
-        <span class="mono">${p.deadline||'—'}</span>
-        ${p.budget ? '<span class="mono">'+Number(p.budget).toLocaleString('pl')+' PLN</span>' : ''}
-        <span style="margin-left:auto;color:var(--ok)">${p.tasks_closed}</span>/<span>${p.tasks_open+p.tasks_closed}</span>
-      </div>
-      <div style="height:4px;background:var(--border);border-radius:2px;margin-top:8px">
-        <div style="height:100%;width:${tasksPct}%;background:var(--ok);border-radius:2px;transition:width 0.5s"></div>
-      </div>
-      <div id="proj-${i}" style="display:none;margin-top:12px;border-top:1px solid var(--border);padding-top:10px">
-        ${(p.tasks||[]).map(t => `<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:12px;border-bottom:1px solid var(--border)">
-          <span style="color:${t.priority==='H'?'var(--danger)':'var(--text)'}">${t.title?.slice(0,40)}</span>
-          <span style="color:var(--muted)">${t.owner||''} ${t.deadline||''}</span>
-        </div>`).join('') || '<div style="color:var(--muted);font-size:12px">Brak zadan</div>'}
-      </div>
-    </div>`;
-  });
-
-  document.getElementById("content").innerHTML = html;
-}
-
-// ── ZESPOL ──────────────────────────────────────────────
-
-async function renderTeam() {
-  const data = await api("/api/org");
-  if (!data) { document.getElementById("content").innerHTML = '<div class="empty-state">Brak danych</div>'; return; }
-
-  const roles = Object.values(data.roles || {});
-  const active = roles.filter(r => r.active);
-  const empty = roles.filter(r => !r.active);
-
-  let html = `<div class="screen-title">Zespol (${active.length} aktywnych)</div>`;
-
-  active.forEach((r, i) => {
-    const initials = (r.person || r.role).split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-    html += `<div class="person-card" style="animation: slideUp 0.3s ease-out ${i*0.05}s both">
-      <div class="avatar avatar-active">${initials}</div>
-      <div class="person-info">
-        <div class="person-name">${r.person || '—'}</div>
-        <div class="person-role">${r.role}</div>
-      </div>
-    </div>`;
-  });
-
-  if (empty.length) {
-    html += `<div class="screen-title" style="margin-top:20px">Nieobsadzone (${empty.length})</div>`;
-    empty.forEach(r => {
-      html += `<div class="person-card" style="opacity:0.5">
-        <div class="avatar avatar-empty">?</div>
-        <div class="person-info">
-          <div class="person-name" style="color:var(--muted)">Brak osoby</div>
-          <div class="person-role">${r.role}</div>
-        </div>
-      </div>`;
-    });
-  }
-
-  document.getElementById("content").innerHTML = html;
-}
-
-// ── SYSTEM ──────────────────────────────────────────────
-
-async function renderSystem() {
-  const [scribe, threads] = await Promise.all([api("/api/analytics/scribe"), api("/api/threads")]);
-  const openThreads = (threads?.threads||[]).filter(t=>t.status==="open").length;
-
-  let html = `<div class="screen-title">System</div>`;
-
-  const sections = [
-    {icon:"&#128209;", label:"Watki", value:`${openThreads} otwartych`, id:"sys-threads"},
-    {icon:"&#128197;", label:"Spotkania", value:`${scribe?.total_meetings||0} przetworzonych`, id:"sys-meetings"},
-    {icon:"&#128196;", label:"Dokumenty", value:"Biblioteka AVM", id:"sys-docs"},
-    {icon:"&#128200;", label:"Analityka", value:"Tygodniowy przeglad", id:"sys-analytics"},
-    {icon:"&#128260;", label:"Procesy", value:"Graf SOP + GATE", id:"sys-processes"},
-    {icon:"&#128101;", label:"RACI", value:"Matryca odpowiedzialnosci", id:"sys-raci"},
-  ];
-
-  sections.forEach(s => {
-    html += `<div class="sys-row" onclick="loadSystemSection('${s.id}')">
-      <div style="display:flex;align-items:center">
-        <span class="sys-icon">${s.icon}</span>
-        <span class="sys-label">${s.label}</span>
-      </div>
-      <span class="sys-value">${s.value}</span>
-    </div>`;
-  });
-
-  html += `<div id="sys-detail"></div>`;
-  document.getElementById("content").innerHTML = html;
-}
-
-async function loadSystemSection(id) {
-  const detail = document.getElementById("sys-detail");
-  detail.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted)">Ladowanie...</div>';
-
-  if (id === "sys-threads") {
-    const data = await api("/api/threads");
-    const ts = data?.threads || [];
-    detail.innerHTML = ts.map(t => `<div class="card card-accent" style="margin-top:8px">
-      <div class="card-title">${t.id}: ${t.title}</div>
-      <div class="card-meta">${t.status} &middot; od ${t.opened} &middot; ${(t.tags||[]).join(', ')}</div>
-      ${(t.history||[]).slice(0,3).map(h => `<div style="font-size:11px;color:var(--muted);padding:3px 0">${h.date} — ${h.source?.slice(0,40)}</div>`).join('')}
-    </div>`).join('') || '<div class="empty-state">Brak watkow</div>';
-  }
-  else if (id === "sys-analytics") {
-    const data = await api("/api/analytics/weekly");
-    const weeks = data?.weeks || [];
-    detail.innerHTML = `<div style="margin-top:12px">${weeks.map(w => `<div style="display:flex;justify-content:space-between;padding:8px 12px;background:var(--surface);border-radius:8px;margin-bottom:4px;font-size:13px">
-      <span class="mono">${w.week}</span>
-      <span>Otwarte: <b>${w.open}</b></span>
-      <span style="color:var(--ok)">Zamkniete: ${w.closed}</span>
-      <span style="color:${w.overdue?'var(--danger)':'var(--muted)'}">Spoznione: ${w.overdue}</span>
-    </div>`).join('')}</div>`;
-  }
-  else if (id === "sys-raci") {
-    const data = await api("/api/raci");
-    if (!data) return;
-    const roles = data.roles || [];
-    detail.innerHTML = `<div style="overflow-x:auto;margin-top:12px"><table style="width:100%;border-collapse:collapse;font-size:12px">
-      <tr>${['SOP',...roles].map(r=>`<th style="padding:6px;background:var(--border);color:var(--muted)">${r}</th>`).join('')}</tr>
-      ${(data.matrix||[]).map(row => `<tr><td style="padding:6px;border-bottom:1px solid var(--border);font-weight:600">${row.sop}</td>
-        ${roles.map(r => {const v=row[r]||''; return `<td style="padding:6px;border-bottom:1px solid var(--border);text-align:center;color:${v.includes('A')?'var(--danger)':v.includes('R')?'var(--accent)':'var(--muted)'};font-weight:${v.includes('A')?'700':'400'}">${v}</td>`;}).join('')}
-      </tr>`).join('')}
-    </table></div>`;
-  }
-  else {
-    detail.innerHTML = '<div class="empty-state">Sekcja w budowie</div>';
-  }
-}
-
-function toggleEl(id) {
-  const el = document.getElementById(id);
-  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
-}
-
-// ── INIT ────────────────────────────────────────────────
-
-render("focus");
+// ═══ INIT ═══════════════════════════════════════════════
+render("map");
 </script>
 </body>
 </html>
