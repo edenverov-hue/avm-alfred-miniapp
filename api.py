@@ -14,7 +14,7 @@ sys.path.insert(0, str(Path.home() / "alfred" / "agents"))
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
 
 from gate_engine import validate_gate, create_project_card, get_gate_definition, GATES
 
@@ -277,6 +277,19 @@ ROLE_DOCS_MAP = {
     "FIN":      ["DOC-SOP-011", "DOC-SOP-012"],
     "SERVICE":  ["DOC-SOP-010"],
 }
+
+
+# ─────────────────────────────────────────────
+# FRONTEND (serve index.html from same origin)
+# ─────────────────────────────────────────────
+
+@app.get("/", response_class=HTMLResponse)
+async def serve_index():
+    """Serwuje Mini App z tego samego origin — brak mixed content."""
+    index_path = Path(__file__).parent / "index.html"
+    if index_path.exists():
+        return HTMLResponse(content=index_path.read_text(encoding="utf-8"))
+    return HTMLResponse(content="<h1>index.html not found</h1>", status_code=404)
 
 
 # ─────────────────────────────────────────────
