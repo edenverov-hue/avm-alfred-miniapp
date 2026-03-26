@@ -176,9 +176,25 @@ body{background:var(--bg);color:var(--text);font-family:'Source Sans 3',sans-ser
   background:var(--navy);color:#fff;border:none;border-radius:2px;font-size:13px;
   font-weight:700;cursor:pointer;font-family:'Source Sans 3',sans-serif}
 .panel-assign-btn:active{opacity:0.7}
+.panel-assign-btn.secondary{background:#fff;color:var(--navy);border:1px solid var(--navy)}
+.panel-assign-btn.danger{background:#fff;color:var(--danger);border:1px solid var(--danger)}
 .panel-assign-form{margin-top:12px;display:flex;flex-direction:column;gap:8px}
-.panel-assign-form input{padding:8px 10px;border:1px solid var(--sep);border-radius:2px;
-  font-size:13px;font-family:'Source Sans 3',sans-serif}
+.panel-assign-form input,.panel-assign-form select{padding:8px 10px;border:1px solid var(--sep);border-radius:2px;
+  font-size:13px;font-family:'Source Sans 3',sans-serif;background:#fff;color:var(--text)}
+.panel-assign-form select{appearance:auto}
+.panel-assign-form label{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px}
+.panel-toggle{display:flex;align-items:center;gap:10px;padding:4px 0}
+.panel-toggle-track{width:40px;height:22px;border-radius:11px;background:var(--sep);
+  position:relative;cursor:pointer;transition:background 0.2s}
+.panel-toggle-track.on{background:var(--navy)}
+.panel-toggle-thumb{width:18px;height:18px;border-radius:50%;background:#fff;position:absolute;
+  top:2px;left:2px;transition:left 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.2)}
+.panel-toggle-track.on .panel-toggle-thumb{left:20px}
+.panel-toggle-label{font-size:12px;color:var(--text)}
+.panel-field-error{font-size:10px;color:var(--danger);margin-top:-4px;display:none}
+.panel-virtual-badge{display:inline-block;font-size:9px;font-weight:700;padding:1px 6px;
+  border-radius:2px;background:#FFF3E0;color:var(--warn);margin-left:6px}
+.panel-swap-section{margin-top:12px;padding:12px;background:var(--surface);border-radius:4px;border:1px solid var(--sep)}
 
 /* ═══ KRONIKA ═══════════════════════════════ */
 .accordion{border:1px solid var(--sep);border-radius:4px;margin-bottom:8px;overflow:hidden}
@@ -563,7 +579,11 @@ function openRolePanel(role){
   if(!orgData)return;
   const r=orgData.roles[role]||{};
   const person=r.person;
+  const chatId=r.chat_id||"";
   const raci=RACI_MATRIX;
+
+  // Check if virtual
+  const isVirtual=chatId.startsWith("VIRTUAL_");
 
   // SOPs where A
   const aSops=Object.entries(raci).filter(([_,roles])=>roles[role]==="A").map(([sop])=>sop);
@@ -573,7 +593,7 @@ function openRolePanel(role){
   const roleTasks=(orgTasks||[]).filter(t=>(t.owner_role||"").includes(role));
 
   let h=`<div class="panel-header">
-    <h2>${role}</h2>
+    <h2>${role}${isVirtual?'<span class="panel-virtual-badge">WIRTUALNY</span>':''}</h2>
     ${person?`<div class="panel-person">${person}</div>`:'<div class="panel-person empty">Nieobsadzone</div>'}
   </div>
   <div class="panel-sep"></div>`;
@@ -609,34 +629,120 @@ function openRolePanel(role){
   });
   h+=`</div>`;
 
-  // Assign button for unassigned
-  if(!person && isCeo){
-    h+=`<div class="panel-section">
-      <button class="panel-assign-btn" onclick="showAssignForm('${role}',this)">Przypisz role</button>
-      <div id="assign-form-${role}"></div>
+  // ADMIN PANEL — only for CEO
+  if(isCeo){
+    h+=`<div class="panel-sep"></div>
+    <div class="panel-section"><h3>Zarzadzaj</h3>`;
+
+    if(isVirtual){
+      // SWAP virtual → real
+      h+=`<div class="panel-swap-section">
+        <div style="font-size:12px;font-weight:600;color:var(--warn);margin-bottom:8px">Wirtualny pracownik — zastap prawdziwym</div>
+        <div class="panel-assign-form">
+          <label>Chat ID prawdziwego pracownika</label>
+          <input type="text" id="swap-chatid-${role}" placeholder="np. 968623191" inputmode="numeric">
+          <div class="panel-field-error" id="swap-err-${role}"></div>
+          <button class="panel-assign-btn" onclick="submitSwap('${role}')">SWAP</button>
+        </div>
+      </div>`;
+    }
+
+    // Full assign form (always visible for CEO)
+    h+=`<div style="margin-top:12px">
+      <div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:8px">${person?'Zmien przypisanie':'Przypisz osobe'}</div>
+      <div class="panel-assign-form" id="assign-form-${role}">
+        <label>Imie i nazwisko</label>
+        <input type="text" id="assign-name-${role}" placeholder="min. 3 znaki" value="${person||''}">
+        <div class="panel-field-error" id="name-err-${role}"></div>
+
+        <label>Jezyk</label>
+        <select id="assign-lang-${role}">
+          <option value="PL">PL — polski</option>
+          <option value="UA">UA — ukrainski</option>
+        </select>
+
+        <div class="panel-toggle">
+          <div class="panel-toggle-track ${!person?'':'off'}" id="toggle-virtual-${role}" onclick="this.classList.toggle('on')">
+            <div class="panel-toggle-thumb"></div>
+          </div>
+          <span class="panel-toggle-label">Wirtualny pracownik</span>
+        </div>
+
+        <div id="chatid-row-${role}">
+          <label>Chat ID</label>
+          <input type="text" id="assign-chatid-${role}" placeholder="liczba lub zostaw puste dla wirtualnego" value="${chatId&&!isVirtual?chatId:''}" inputmode="numeric">
+          <div class="panel-field-error" id="chatid-err-${role}"></div>
+        </div>
+
+        <button class="panel-assign-btn" onclick="submitAssign('${role}')">PRZYPISZ</button>
+      </div>
     </div>`;
+
+    h+=`</div>`;
   }
 
   openPanel(h);
 }
 
-function showAssignForm(role, btn){
-  btn.style.display="none";
-  document.getElementById("assign-form-"+role).innerHTML=`
-    <div class="panel-assign-form">
-      <input type="text" id="assign-name-${role}" placeholder="Imie i nazwisko">
-      <input type="text" id="assign-chatid-${role}" placeholder="Chat ID (opcjonalnie)">
-      <button class="panel-assign-btn" onclick="submitAssign('${role}')">Zapisz</button>
-    </div>`;
+function validateAssignForm(role){
+  let ok=true;
+  const name=document.getElementById("assign-name-"+role).value.trim();
+  const chatId=document.getElementById("assign-chatid-"+role).value.trim();
+  const isVirtual=document.getElementById("toggle-virtual-"+role)?.classList.contains("on");
+
+  // Name validation
+  const nameErr=document.getElementById("name-err-"+role);
+  if(name.length<3){nameErr.textContent="Min. 3 znaki";nameErr.style.display="block";ok=false}
+  else{nameErr.style.display="none"}
+
+  // Chat ID validation
+  const chatErr=document.getElementById("chatid-err-"+role);
+  if(!isVirtual && chatId && !chatId.match(/^\d+$/) && !chatId.startsWith("VIRTUAL_")){
+    chatErr.textContent="Chat ID musi byc liczba";chatErr.style.display="block";ok=false;
+  } else {chatErr.style.display="none"}
+
+  return ok;
 }
 
 async function submitAssign(role){
+  if(!validateAssignForm(role))return;
+
   const person=document.getElementById("assign-name-"+role).value.trim();
   const chatId=document.getElementById("assign-chatid-"+role).value.trim();
-  if(!person){showToast("Wpisz imie","error");return}
-  const res=await api("/api/roles/assign",{method:"POST",body:JSON.stringify({role,person,chat_id:chatId})});
-  if(res?.ok){showToast("Przypisano: "+person);closePanel();rOrg()}
-  else{showToast("Blad przypisania","error")}
+  const language=document.getElementById("assign-lang-"+role).value;
+  const isVirtual=document.getElementById("toggle-virtual-"+role)?.classList.contains("on");
+
+  const res=await api("/api/roles/assign",{method:"POST",body:JSON.stringify({
+    role, person, chat_id:chatId, language, virtual:isVirtual
+  })});
+  if(res?.ok){
+    showToast("Przypisano: "+person+" → "+role);
+    closePanel();
+    rOrg();
+  } else {
+    showToast(res?.error||"Blad przypisania","error");
+  }
+}
+
+async function submitSwap(role){
+  const chatId=document.getElementById("swap-chatid-"+role).value.trim();
+  const swapErr=document.getElementById("swap-err-"+role);
+
+  if(!chatId.match(/^\d+$/)){
+    swapErr.textContent="Chat ID musi byc liczba";swapErr.style.display="block";return;
+  }
+  swapErr.style.display="none";
+
+  const res=await api("/api/roles/swap_virtual",{method:"POST",body:JSON.stringify({
+    role, real_chat_id:chatId
+  })});
+  if(res?.ok){
+    showToast("Swap: wirtualny → "+chatId);
+    closePanel();
+    rOrg();
+  } else {
+    showToast(res?.error||"Blad swap","error");
+  }
 }
 
 // ═══ KRONIKA ═══════════════════════════════

@@ -320,10 +320,15 @@ def get_org():
         person = None
         active = False
 
+        virtual = False
+        language = "PL"
+
         if primary_id:
             worker = config["workers"].get(str(primary_id), {})
             person = worker.get("person")
-            active = bool(person)
+            active = bool(person) and not worker.get("virtual", False)
+            virtual = worker.get("virtual", False)
+            language = worker.get("language", "PL")
         else:
             persons = [p for p in rdata.get("persons", [])
                        if not p.get("to") and p.get("person")]
@@ -335,6 +340,8 @@ def get_org():
             "person": person,
             "chat_id": primary_id,
             "active": active,
+            "virtual": virtual,
+            "language": language,
             "reports_to": REPORTS_TO.get(role),
         }
 
@@ -1056,15 +1063,25 @@ async def assign_role(request: Request):
     role = body.get("role", "").upper()
     person = body.get("person", "")
     chat_id = body.get("chat_id", "")
+    language = body.get("language", "PL")
+    virtual = body.get("virtual", False)
 
     if not role or not person:
         return JSONResponse(status_code=400, content={"error": "role and person required"})
+    if len(person.strip()) < 3:
+        return JSONResponse(status_code=400, content={"error": "person name min 3 characters"})
 
     config = load_config()
     if role not in config.get("roles", {}):
         return JSONResponse(status_code=404, content={"error": f"Role {role} not found"})
 
-    # Register worker if chat_id provided
+    # Generate virtual chat_id if needed
+    if virtual and not chat_id:
+        chat_id = f"VIRTUAL_{role}_{int(datetime.now().timestamp())}"
+    elif chat_id and not chat_id.startswith("VIRTUAL_") and not chat_id.isdigit():
+        return JSONResponse(status_code=400, content={"error": "chat_id must be numeric or VIRTUAL_*"})
+
+    # Register worker
     if chat_id:
         if chat_id not in config.get("workers", {}):
             config.setdefault("workers", {})[chat_id] = {
@@ -1072,19 +1089,71 @@ async def assign_role(request: Request):
                 "roles": [role],
                 "primary_role": role,
                 "registered": datetime.now().isoformat(),
-                "active": True,
+                "active": not virtual,
+                "language": language,
+                "virtual": virtual,
             }
         else:
             worker = config["workers"][chat_id]
             if role not in worker.get("roles", []):
                 worker.setdefault("roles", []).append(role)
             worker["person"] = person
-            worker["active"] = True
+            worker["active"] = not virtual
+            worker["language"] = language
+            worker["virtual"] = virtual
 
         config["roles"][role]["primary_chat_id"] = chat_id
 
     CONFIG_FILE.write_text(json.dumps(config, indent=2, ensure_ascii=False), encoding="utf-8")
-    return {"ok": True, "role": role, "person": person}
+    return {"ok": True, "role": role, "person": person, "chat_id": chat_id, "virtual": virtual}
+
+
+@app.post("/api/roles/swap_virtual")
+async def swap_virtual(request: Request):
+    """Zamienia wirtualnego pracownika na prawdziwego."""
+    body = await request.json()
+    role = body.get("role", "").upper()
+    real_chat_id = body.get("real_chat_id", "")
+
+    if not role or not real_chat_id:
+        return JSONResponse(status_code=400, content={"error": "role and real_chat_id required"})
+    if not real_chat_id.isdigit():
+        return JSONResponse(status_code=400, content={"error": "real_chat_id must be numeric"})
+
+    config = load_config()
+    if role not in config.get("roles", {}):
+        return JSONResponse(status_code=404, content={"error": f"Role {role} not found"})
+
+    role_data = config["roles"][role]
+    old_chat_id = role_data.get("primary_chat_id", "")
+
+    # Find old virtual worker
+    old_worker = config.get("workers", {}).get(old_chat_id, {})
+    if not old_worker.get("virtual"):
+        return JSONResponse(status_code=400, content={"error": "Current worker is not virtual"})
+
+    person = old_worker.get("person", "")
+    language = old_worker.get("language", "PL")
+
+    # Remove old virtual entry
+    if old_chat_id in config.get("workers", {}):
+        del config["workers"][old_chat_id]
+
+    # Create real worker
+    config.setdefault("workers", {})[real_chat_id] = {
+        "person": person,
+        "roles": [role],
+        "primary_role": role,
+        "registered": datetime.now().isoformat(),
+        "active": True,
+        "language": language,
+        "virtual": False,
+    }
+
+    config["roles"][role]["primary_chat_id"] = real_chat_id
+
+    CONFIG_FILE.write_text(json.dumps(config, indent=2, ensure_ascii=False), encoding="utf-8")
+    return {"ok": True, "role": role, "person": person, "old_chat_id": old_chat_id, "new_chat_id": real_chat_id}
 
 
 # ─────────────────────────────────────────────
